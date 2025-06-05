@@ -64,6 +64,14 @@ def printHand(hand):
 def printState(state):
   [print(str(player)) for player in state]
 
+def searchSpace(hand):
+  space = {}
+  for card in list(hand):
+    cardset = [s for s in SETS if card in s][0]
+    space = space | cardset
+  
+  return space
+
 class Player:
   def __init__(self, playerNum, hand):
     self.hand = hand
@@ -71,6 +79,7 @@ class Player:
     setDeck = set(DECK)
     self.knowledge = [setDeck - hand for _ in range(NUMPLAYERS - 1)]
     self.knowledge.insert(playerNum, hand)
+    self.search = searchSpace(hand)
 
   def __str__(self):
     return f'Player {self.playerNum}: {" ".join([NTOC[card] for card in list(self.hand)])}'
@@ -78,9 +87,10 @@ class Player:
   def update(self, move):
     self.knowledge
     #do something to knowledge
+    #knowledge includes your own hand, previous asks, number of cards each player has, and how many of each set a player might potentially have
 
-  def makeMove():
-    return 
+  def getMove():
+    return
     #use knowledge to make move
 
 def makeGame(NumPlayers=NUMPLAYERS):
@@ -93,7 +103,7 @@ def playGame(state, NumPlayers=NUMPLAYERS):
   # printState(state)
   turn = random.randint(0, NumPlayers-1)
   while True:
-    state[turn].makeMove()
+    state[turn].getMove()
 
 
 def main():
