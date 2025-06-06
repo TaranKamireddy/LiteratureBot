@@ -17,6 +17,11 @@ import random
 # of asks to first opponents and then teammates. if a call
 # is correct the scores will change accordingly
 
+#assumptions:
+#all players start with equal number of cards
+#team distributions are balanced
+#only 2 teams
+
 NUMPLAYERS = 6
 
 DECK = [2, 3, 4, 5, 6, 7, 9, 10, 11, 12, 13, 14,\
@@ -65,7 +70,7 @@ def printState(state):
   [print(str(player)) for player in state]
 
 def searchSpace(hand):
-  space = {}
+  space = set()
   for card in list(hand):
     cardset = [s for s in SETS if card in s][0]
     space = space | cardset
@@ -80,17 +85,36 @@ class Player:
     self.knowledge = [setDeck - hand for _ in range(NUMPLAYERS - 1)]
     self.knowledge.insert(playerNum, hand)
     self.search = searchSpace(hand)
+    self.numCards = [len(DECK)//NUMPLAYERS for _ in range(NUMPLAYERS)]
+    # print(self.search)
+    # print(self.knowledge)
+    # input()
 
   def __str__(self):
     return f'Player {self.playerNum}: {" ".join([NTOC[card] for card in list(self.hand)])}'
 
-  def update(self, move):
+  def update(self, move, success):
+    
     self.knowledge
     #do something to knowledge
     #knowledge includes your own hand, previous asks, number of cards each player has, and how many of each set a player might potentially have
+    #cards they have, cards in a set they asked for, and cards that they could have
+    # known, 
 
-  def getMove():
-    return
+  def getMove(self):
+    #look through knowledge and see where it intersects with search
+    # askee = -1
+    # card = -1
+    # for i,player in enumerate(self.knowledge):
+    #   if i < NUMPLAYERS//2 == self.playerNum < NUMPLAYERS//2: #skips over teammates
+    #     continue
+    askee = random.randint((c := self.playerNum < (h := NUMPLAYERS//2)) * h,  c * h + h - 1) #fancy way to get opponents to ask
+    card = random.choice([*self.search])
+    # print(askee, NTOC[card])
+    move = (self.playerNum, askee, card)
+    # print("")
+      
+    return move
     #use knowledge to make move
 
 def makeGame(NumPlayers=NUMPLAYERS):
@@ -103,8 +127,27 @@ def playGame(state, NumPlayers=NUMPLAYERS):
   # printState(state)
   turn = random.randint(0, NumPlayers-1)
   while True:
-    state[turn].getMove()
+    move = state[turn].getMove()
+    if not isValid(state, move):
+      print("not a valid move lil bro: ", move)
+      continue
+    # print(state)
+    state = playMove(state, move)
+    turn = random.randint(0, NumPlayers-1)
 
+def playMove(state, move):
+  card = move[2]
+  success = card in state[move[1]].hand
+  print(move, success)
+  for player in state:
+    player.update(move, success)
+  return state
+
+def isValid(state, move):
+  #checks both that move is in the search space and that the opponent has cards
+  #will eventually have to do more validation like is person a teammate and has that set been called already
+  #technically the latter is already accounted for but a proper error message would be nice
+  return move[2] in searchSpace(state[move[0]].hand) and state[move[1]].hand 
 
 def main():
   state = makeGame()
