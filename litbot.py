@@ -77,6 +77,17 @@ def searchSpace(hand):
   
   return space
 
+def setFromCard(card):
+  for set in SETS:
+    if card in set:
+      return set
+
+def randOpponent(playerNum): #, team=False):
+  #if team:
+  return random.randint((c := playerNum < (h := NUMPLAYERS//2)) * h,  c * h + h - 1)
+  #return random.randint((c := team ^ (playerNum < (h := NUMPLAYERS//2))) * h,  c * h + h - 1)
+
+
 class Player:
   def __init__(self, playerNum, hand):
     self.hand = hand
@@ -94,12 +105,22 @@ class Player:
     return f'Player {self.playerNum}: {" ".join([NTOC[card] for card in list(self.hand)])}'
 
   def update(self, move, success):
-    
-    self.knowledge
+    if success:
+      if self.playerNum == move[0]:
+        self.hand.add(move[2])
+
+      elif self.playerNum == move[1]:
+        self.hand.remove(move[2])
+      
+      self.search = searchSpace(self.hand)
+
+
+    # self.knowledge
     #do something to knowledge
     #knowledge includes your own hand, previous asks, number of cards each player has, and how many of each set a player might potentially have
     #cards they have, cards in a set they asked for, and cards that they could have
     # known, 
+
 
   def getMove(self):
     #look through knowledge and see where it intersects with search
@@ -108,7 +129,7 @@ class Player:
     # for i,player in enumerate(self.knowledge):
     #   if i < NUMPLAYERS//2 == self.playerNum < NUMPLAYERS//2: #skips over teammates
     #     continue
-    askee = random.randint((c := self.playerNum < (h := NUMPLAYERS//2)) * h,  c * h + h - 1) #fancy way to get opponents to ask
+    askee = randOpponent(self.playerNum) #fancy way to get opponents to ask
     card = random.choice([*self.search])
     # print(askee, NTOC[card])
     move = (self.playerNum, askee, card)
@@ -126,19 +147,32 @@ def makeGame(NumPlayers=NUMPLAYERS):
 def playGame(state, NumPlayers=NUMPLAYERS):
   # printState(state)
   turn = random.randint(0, NumPlayers-1)
+  score = 0
+  teams = [[i for i in range(0,NumPlayers//2)], [i for i in range(NumPlayers//2, NumPlayers)]]
   while True:
     move = state[turn].getMove()
+    print(f'Player {turn} asks Player {move[1]} for {NTOC[move[2]]}\n')
     if not isValid(state, move):
       print("not a valid move lil bro: ", move)
       continue
+
     # print(state)
+    success = move[2] in state[move[1]].hand
+    print(success,'\n')
     state = playMove(state, move)
-    turn = random.randint(0, NumPlayers-1)
+    if success:
+      printState(state)
+    if success:
+      if not state[turn].hand:
+        teams[turn < NumPlayers//2].remove(turn)
+        turn = random.choice(teams[turn < NumPlayers//2])
+    else:
+      turn = move[1]
 
 def playMove(state, move):
   card = move[2]
   success = card in state[move[1]].hand
-  print(move, success)
+  # print(move, success)
   for player in state:
     player.update(move, success)
   return state
@@ -147,6 +181,7 @@ def isValid(state, move):
   #checks both that move is in the search space and that the opponent has cards
   #will eventually have to do more validation like is person a teammate and has that set been called already
   #technically the latter is already accounted for but a proper error message would be nice
+  #this method probably takes up a lot of time but is mostly for debugging
   return move[2] in searchSpace(state[move[0]].hand) and state[move[1]].hand 
 
 def main():
