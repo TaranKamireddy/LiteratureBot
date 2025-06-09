@@ -147,11 +147,14 @@ def makeGame(NumPlayers=NUMPLAYERS):
 def playGame(state, NumPlayers=NUMPLAYERS):
   # printState(state)
   turn = random.randint(0, NumPlayers-1)
+  countMoves = 0
   score = 0
   teams = [[i for i in range(0,NumPlayers//2)], [i for i in range(NumPlayers//2, NumPlayers)]]
   while True:
     move = state[turn].getMove()
+    countMoves+=1
     print(f'Player {turn} asks Player {move[1]} for {NTOC[move[2]]}\n')
+    
     if not isValid(state, move):
       print("not a valid move lil bro: ", move)
       continue
@@ -160,6 +163,7 @@ def playGame(state, NumPlayers=NUMPLAYERS):
     success = move[2] in state[move[1]].hand
     print(success,'\n')
     state = playMove(state, move)
+
     if success:
       printState(state)
     if success:
@@ -168,6 +172,19 @@ def playGame(state, NumPlayers=NUMPLAYERS):
         turn = random.choice(teams[turn < NumPlayers//2])
     else:
       turn = move[1]
+
+    if isGameOver(state):
+      print(f'\nTotal number of moves: {countMoves}\n')
+      break
+
+def isGameOver(state):
+  combinedHand = {card for player in state[:NUMPLAYERS//2] for card in player.hand}
+  for set in SETS:
+    diff = len(combinedHand & set)
+    if diff != 0 and diff != len(set):
+      return False
+  return True
+  
 
 def playMove(state, move):
   card = move[2]
