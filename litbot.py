@@ -22,6 +22,11 @@ import random
 #team distributions are balanced
 #only 2 teams
 
+#ideas for strats
+#want to make a move for a card with the least guessing and
+#choose the person with the highest chance of having it
+#this should make it so it mostly goes for 1 card at a time
+
 NUMPLAYERS = 6
 
 DECK = [2, 3, 4, 5, 6, 7, 9, 10, 11, 12, 13, 14,\
@@ -63,8 +68,11 @@ def distribute(cards, NumPlayers=NUMPLAYERS):
 
   return state
 
-def printHand(hand):
-  print(" ".join([NTOC[card] for card in list(hand)]))
+def printCards(cards):
+  if type(cards) == set:
+    print(" ".join([NTOC[card] for card in list(cards)]))
+  else:
+    print(" ".join([NTOC[card] for card in list(cards.hand)]))
 
 def printState(state):
   [print(str(player)) for player in state]
@@ -74,7 +82,8 @@ def searchSpace(hand):
   for card in list(hand):
     cardset = [s for s in SETS if card in s][0]
     space = space | cardset
-  
+  space = space - hand
+
   return space
 
 def setFromCard(card):
@@ -87,16 +96,38 @@ def randOpponent(playerNum): #, team=False):
   return random.randint((c := playerNum < (h := NUMPLAYERS//2)) * h,  c * h + h - 1)
   #return random.randint((c := team ^ (playerNum < (h := NUMPLAYERS//2))) * h,  c * h + h - 1)
 
+def initialKnowledge(hand, playerNum):
+  knowledge = []
+  setDeck = set(DECK)
+  for i in range(NUMPLAYERS):
+    playerKnowledge = {"known":[],"knownset":[],"possible":[],"numCards":len(hand)}
+    if i != playerNum:
+      playerKnowledge['possible'] = list(setDeck - hand)
+    else:
+      playerKnowledge['known'] = list(hand)
+    knowledge.append(playerKnowledge)
+  
+  return knowledge
 
+def easyCall(hand):
+  for set in SETS:
+    if set.issubset(hand):
+      return set
+  return None
+
+
+#idea for knowledge structure: [{"known":set(),"knownset":set(),"possible":set(),"numCards":int}, ...]
+#could also do [{"card1":rank, "card2":rank}, ...]
 class Player:
   def __init__(self, playerNum, hand):
     self.hand = hand
     self.playerNum = playerNum
-    setDeck = set(DECK)
-    self.knowledge = [setDeck - hand for _ in range(NUMPLAYERS - 1)]
-    self.knowledge.insert(playerNum, hand)
+    # setDeck = set(DECK)
+    # self.knowledge = [setDeck - hand for _ in range(NUMPLAYERS - 1)]
+    # self.knowledge.insert(playerNum, hand)
+    self.knowledge = initialKnowledge(hand, playerNum)
     self.search = searchSpace(hand)
-    self.numCards = [len(DECK)//NUMPLAYERS for _ in range(NUMPLAYERS)]
+    # self.numCards = [len(DECK)//NUMPLAYERS for _ in range(NUMPLAYERS)]
     # print(self.search)
     # print(self.knowledge)
     # input()
@@ -106,13 +137,16 @@ class Player:
 
   def update(self, move, success):
     if success:
-      if self.playerNum == move[0]:
-        self.hand.add(move[2])
-
-      elif self.playerNum == move[1]:
+      if self.playerNum == move[1]:
         self.hand.remove(move[2])
+      elif self.playerNum == move[0]:
+        self.hand.add(move[2])
       
       self.search = searchSpace(self.hand)
+    
+
+
+    
 
 
     # self.knowledge
@@ -129,10 +163,13 @@ class Player:
     # for i,player in enumerate(self.knowledge):
     #   if i < NUMPLAYERS//2 == self.playerNum < NUMPLAYERS//2: #skips over teammates
     #     continue
+    if (call := easyCall(self.hand)):
+      return [(self.playerNum, self.playerNum, card) for card in list(call)]
+
     askee = randOpponent(self.playerNum) #fancy way to get opponents to ask
     card = random.choice([*self.search])
     # print(askee, NTOC[card])
-    move = (self.playerNum, askee, card)
+    move = [(self.playerNum, askee, card)]
     # print("")
       
     return move
@@ -146,36 +183,61 @@ def makeGame(NumPlayers=NUMPLAYERS):
 
 def playGame(state, NumPlayers=NUMPLAYERS):
   # printState(state)
+  gameOver = False
   turn = random.randint(0, NumPlayers-1)
   countMoves = 0
   score = 0
   teams = [[i for i in range(0,NumPlayers//2)], [i for i in range(NumPlayers//2, NumPlayers)]]
-  while True:
-    move = state[turn].getMove()
-    countMoves+=1
-    print(f'Player {turn} asks Player {move[1]} for {NTOC[move[2]]}\n')
+  while not gameOver:
+    #gets move
     
-    if not isValid(state, move):
-      print("not a valid move lil bro: ", move)
+    moves = state[turn].getMove()
+    valid = True
+    success = True
+    prevState = state
+    calling = len(moves) > 1
+
+    if calling:
+      print(f'Player {turn} is calling')
+
+    for move in moves:
+      print(f'Player {turn} asks Player {move[1]} for {NTOC[move[2]]}\n')
+    
+      #validates move
+      if not isValid(state, move, calling):
+        print("not a valid move lil bro: ", move)
+        valid = False
+
+      #plays move
+      if valid:
+        success = success and move[2] in state[move[1]].hand
+        print(success,'\n')
+        state = playMove(state, move)
+
+    if not valid:
+      state = prevState
       continue
+    else:
+      countMoves+=1
 
-    # print(state)
-    success = move[2] in state[move[1]].hand
-    print(success,'\n')
-    state = playMove(state, move)
-
+    #changes turns
     if success:
       printState(state)
-    if success:
-      if not state[turn].hand:
-        teams[turn < NumPlayers//2].remove(turn)
-        turn = random.choice(teams[turn < NumPlayers//2])
-    else:
-      turn = move[1]
+      [printCards(player.search) for player in state]
 
-    if isGameOver(state):
-      print(f'\nTotal number of moves: {countMoves}\n')
-      break
+      #check game over
+      if isGameOver(state):
+        # [printCards(player.search) for player in state]
+        print(f'\nTotal number of moves: {countMoves}\n')
+        gameOver = True
+      elif not state[turn].hand:
+        teams[turn >= NumPlayers//2].remove(turn)
+        turn = random.choice(teams[turn >= NumPlayers//2])
+    else:
+      if len(moves) > 1:
+        turn = random.choice(teams[turn < NumPlayers//2])
+      else:
+        turn = moves[0][1]
 
 def isGameOver(state):
   combinedHand = {card for player in state[:NUMPLAYERS//2] for card in player.hand}
@@ -184,7 +246,6 @@ def isGameOver(state):
     if diff != 0 and diff != len(set):
       return False
   return True
-  
 
 def playMove(state, move):
   card = move[2]
@@ -194,12 +255,12 @@ def playMove(state, move):
     player.update(move, success)
   return state
 
-def isValid(state, move):
+def isValid(state, move, calling = False):
   #checks both that move is in the search space and that the opponent has cards
   #will eventually have to do more validation like is person a teammate and has that set been called already
   #technically the latter is already accounted for but a proper error message would be nice
   #this method probably takes up a lot of time but is mostly for debugging
-  return move[2] in searchSpace(state[move[0]].hand) and state[move[1]].hand 
+  return (move[2] in searchSpace(state[move[0]].hand) or calling) and state[move[1]].hand 
 
 def main():
   state = makeGame()
