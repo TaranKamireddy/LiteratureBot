@@ -186,6 +186,7 @@ def playGame(state, NumPlayers=NUMPLAYERS):
   gameOver = False
   turn = random.randint(0, NumPlayers-1)
   countMoves = 0
+  countCalls = 0
   score = 0
   teams = [[i for i in range(0,NumPlayers//2)], [i for i in range(NumPlayers//2, NumPlayers)]]
   while not gameOver:
@@ -206,6 +207,8 @@ def playGame(state, NumPlayers=NUMPLAYERS):
       #validates move
       if not isValid(state, move, calling):
         print("not a valid move lil bro: ", move)
+        printState(state)
+        input()
         valid = False
 
       #plays move
@@ -218,7 +221,10 @@ def playGame(state, NumPlayers=NUMPLAYERS):
       state = prevState
       continue
     else:
-      countMoves+=1
+      if calling:
+        countCalls+=1
+      else:
+        countMoves+=1
 
     #changes turns
     if success:
@@ -229,15 +235,23 @@ def playGame(state, NumPlayers=NUMPLAYERS):
       if isGameOver(state):
         # [printCards(player.search) for player in state]
         print(f'\nTotal number of moves: {countMoves}\n')
+        print(f'Total number of calls: {countCalls}\n')
         gameOver = True
       elif not state[turn].hand:
+        print(teams)
+
         teams[turn >= NumPlayers//2].remove(turn)
         turn = random.choice(teams[turn >= NumPlayers//2])
+        print(teams)
+        print(turn)
+        input()
     else:
       if len(moves) > 1:
         turn = random.choice(teams[turn < NumPlayers//2])
       else:
         turn = moves[0][1]
+
+  return countCalls
 
 def isGameOver(state):
   combinedHand = {card for player in state[:NUMPLAYERS//2] for card in player.hand}
@@ -264,7 +278,10 @@ def isValid(state, move, calling = False):
 
 def main():
   state = makeGame()
-  playGame(state)
+  calls = playGame(state)
+  # while calls < 5:
+  #   state = makeGame()
+  #   calls = playGame(state)
 
 if __name__ == "__main__":
   main()
