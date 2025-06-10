@@ -1,0 +1,40 @@
+moves = getmove()
+calling = len(moves) > 1
+for move in moves:
+	is valid?
+		success = success and currmove_success
+
+if not valid:
+	say not valid
+	continue
+
+if calling
+	if success:
+		playMove()
+		score[team < asdfds] += 1
+	else:
+		for move in moves:
+			askee = move[1]
+			if not success:
+				for player in state:
+					if player has move[2]
+						askee = player.playerNum
+			playMove((move[0], askee, move[2]))
+					
+else:
+	playMove()
+
+	
+is success? 
+	have cards?:
+		keep turn
+	else:
+		teams has moves?:
+			pick team turn
+		else:
+			pick opp turn
+else: 
+	calling?:
+		pick opp turn
+	else:
+		lose turn

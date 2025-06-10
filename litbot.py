@@ -1,5 +1,5 @@
 import random
-
+import time
 #list of players with set of cards in num format ex [{1,2,3},{23,45,25}]
 #2, 3, 4, 5, 6, 7, 9, 10, 11, 12, 13, 14
 #15, 16, 17, 18, 19, 20, 22, 23, 24, 25, 26, 27
@@ -200,36 +200,23 @@ def playGame(state, NumPlayers=NUMPLAYERS):
   teams = [[i for i in range(0,NumPlayers//2)], [i for i in range(NumPlayers//2, NumPlayers)]]
   while not gameOver:
     #gets move
-    
     moves = state[turn].getMove()
     valid = True
     success = True
-    prevState = state
     team = turn >= NumPlayers//2
     calling = len(moves) > 1
 
     if calling:
       print(f'Player {turn} is calling')
 
+    #is valid?
     for move in moves:
-      # print(f'Player {turn} asks Player {move[1]} for {NTOC[move[2]]}\n')
-    
-      #validates move
-      # if not isValid(state, move, calling):
-      #   print("not a valid move lil bro: ", move)
-      #   printState(state)
-      #   input()
-      #   valid = False
       valid = isValid(state, move, calling) and valid
-
-      #plays move
       if valid:
         success = move[2] in state[move[1]].hand and success
-        # print(success,'\n')
-        # state = playMove(state, move)
 
+    #not valid :(
     if not valid:
-      # state = prevState
       print("not valid lil bro: ", moves)
       continue
     else:
@@ -238,12 +225,14 @@ def playGame(state, NumPlayers=NUMPLAYERS):
       else:
         countMoves+=1
 
+    #plays moves
     if calling:
       if success:
         for move in moves:
           print(f'Player {turn} asks Player {move[1]} for {NTOC[move[2]]}\n')
           playMove(state, move)
           print(success,'\n')
+
         score[team] += 1
       else:
         for move in moves:
@@ -253,6 +242,7 @@ def playGame(state, NumPlayers=NUMPLAYERS):
               if move[2] in player.hand:
                 askee = player.playerNum
           playMove(state, (move[0], askee, move[2]))    
+          
         score[not team] += 1  
     else:
       print(f'Player {turn} asks Player {move[1]} for {NTOC[move[2]]}\n')
@@ -263,29 +253,22 @@ def playGame(state, NumPlayers=NUMPLAYERS):
     #changes turns
     if success:
       printState(state)
-      [printCards(player.search) for player in state]
+      # [printCards(player.search) for player in state]
 
       #check game over
       if isGameOver(state):
-        # [printCards(player.search) for player in state]
-        
         gameOver = True
       elif not state[turn].hand:
-        print(teams)
-
-        teams[turn >= NumPlayers//2].remove(turn)
-        turn = random.choice(teams[turn >= NumPlayers//2])
-        print(teams)
-        print(turn)
-        input()
+        teams[team].remove(turn)
+        turn = random.choice(teams[team])
     else:
       if len(moves) > 1:
-        turn = random.choice(teams[turn < NumPlayers//2])
+        turn = random.choice(teams[not team])
       else:
         turn = moves[0][1]
 
-  print(f'\nTotal number of moves: {countMoves}\n')
-  print(f'Total number of calls: {countCalls}\n')
+  print(f'\nTotal number of moves: {countMoves}')
+  print(f'Total number of calls: {countCalls}')
   print(f'Score: {score[0]} - {score[1]}')
 
   return countCalls
@@ -314,11 +297,22 @@ def isValid(state, move, calling = False):
   return (move[2] in searchSpace(state[move[0]].hand) or calling) and state[move[1]].hand 
 
 def main():
-  state = makeGame()
-  calls = playGame(state)
-  # while calls < 5:
-  #   state = makeGame()
-  #   calls = playGame(state)
+  count = 0
+  # state = makeGame()
+  # calls = playGame(state)
+  calls = 0
+  start = time.time()
+  while calls < 8:
+    count+=1
+    state = makeGame()
+    try:
+      calls = playGame(state)
+    except:
+      input()
+      print("fail")
+  end = time.time()
+  print(f'Count: {count}')
+  print(f'Average time per game: {(end - start)/count:.6f} seconds')
 
 if __name__ == "__main__":
   main()
