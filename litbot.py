@@ -118,6 +118,7 @@ def easyCall(hand):
 
 #idea for knowledge structure: [{"known":set(),"knownset":set(),"possible":set(),"numCards":int}, ...]
 #could also do [{"card1":rank, "card2":rank}, ...]
+#could do bucketing [[rank1 cards, rank2 cards, rank3 cards, numCards], ...]
 class Player:
   def __init__(self, playerNum, hand):
     self.hand = hand
@@ -144,11 +145,19 @@ class Player:
         self.hand.add(card)
       
       self.search = searchSpace(self.hand)
-
-      self.knowledge[askee]['numCards']-=1
       self.knowledge[asker]['numCards']+=1
-    
+      self.knowledge[askee]['numCards']-=1
+      self.knowledge[asker]['known'].append(card)
+      if card in self.knowledge[askee]['known']:
+        self.knowledge[askee]['known'].remove(card) 
 
+      for i in range(NUMPLAYERS):
+        if i != self.playerNum: #could do i not in move but less clean
+          if card in self.knowledge[i]['possible']:
+            self.knowledge[i]['possible'].remove(card)
+          elif card in self.knowledge[i]['knownset']:
+            self.knowledge[i]['knownset'].remove(card)
+        
 
     
 
@@ -191,7 +200,6 @@ def makeGame(NumPlayers=NUMPLAYERS):
   return state
 
 def playGame(state, NumPlayers=NUMPLAYERS):
-  # printState(state)
   gameOver = False
   turn = random.randint(0, NumPlayers-1)
   countMoves = 0

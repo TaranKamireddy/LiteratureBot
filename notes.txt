@@ -1,0 +1,32 @@
+When a move is made and it's successful the knowledge gained is
+the asker, askee, and card. We must also learn that the asker
+must have had a card in that set so their knownset must be updated
+to include all cards in that set that aren't already in known. Those
+must then also be removed from possible. The number of cards for the
+asker should go up and for the askee go down. The known for the
+asker should include the card taken.
+
+When an unsuccessful move is made the knowledge gained is that
+neither the asker nor askee has the card. We learn that the asker
+has a card in that set so their knownset now includes everything
+from that set that isn't that card. Remove those cards from possible.
+
+If there is ever a single card from a set in knownset then it should
+move to known.
+
+If numCards is equal to length of known then knownset and possible 
+should be cleared.
+
+If numCards ever reaches zero then their knowledge should be completely
+empty.
+
+If a card is not in anyone's knowledge except for one person then that card
+should be moved to known for that person.
+
+There's a lot more like:
+    - specific set hasn't been asked but players have known and knownset cards
+    that make it impossible for them to have it so another person has it.
+    - when 2 sets are left if it isn't known what the other team has but 
+    their knownset does not include the other set then your team must have it
+    and vice versa
+    - 
