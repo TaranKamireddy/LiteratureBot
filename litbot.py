@@ -136,13 +136,17 @@ class Player:
     return f'Player {self.playerNum}: {" ".join([NTOC[card] for card in list(self.hand)])}'
 
   def update(self, move, success):
+    asker, askee, card = move
     if success:
-      if self.playerNum == move[1]:
-        self.hand.remove(move[2])
-      elif self.playerNum == move[0]:
-        self.hand.add(move[2])
+      if self.playerNum == askee:
+        self.hand.remove(card)
+      elif self.playerNum == asker:
+        self.hand.add(card)
       
       self.search = searchSpace(self.hand)
+
+      self.knowledge[askee]['numCards']-=1
+      self.knowledge[asker]['numCards']+=1
     
 
 
@@ -166,7 +170,12 @@ class Player:
     if (call := easyCall(self.hand)):
       return [(self.playerNum, self.playerNum, card) for card in list(call)]
 
+    #TODO need to change this stupid ahh code because if the opponets are all gone
+    #it wont call cuz i dont have advanced caling yet
     askee = randOpponent(self.playerNum) #fancy way to get opponents to ask
+    while self.knowledge[askee]['numCards'] == 0: 
+      askee = randOpponent(self.playerNum)
+
     card = random.choice([*self.search])
     # print(askee, NTOC[card])
     move = [(self.playerNum, askee, card)]
@@ -187,7 +196,7 @@ def playGame(state, NumPlayers=NUMPLAYERS):
   turn = random.randint(0, NumPlayers-1)
   countMoves = 0
   countCalls = 0
-  score = 0
+  score = [0, 0]
   teams = [[i for i in range(0,NumPlayers//2)], [i for i in range(NumPlayers//2, NumPlayers)]]
   while not gameOver:
     #gets move
@@ -196,35 +205,60 @@ def playGame(state, NumPlayers=NUMPLAYERS):
     valid = True
     success = True
     prevState = state
+    team = turn >= NumPlayers//2
     calling = len(moves) > 1
 
     if calling:
       print(f'Player {turn} is calling')
 
     for move in moves:
-      print(f'Player {turn} asks Player {move[1]} for {NTOC[move[2]]}\n')
+      # print(f'Player {turn} asks Player {move[1]} for {NTOC[move[2]]}\n')
     
       #validates move
-      if not isValid(state, move, calling):
-        print("not a valid move lil bro: ", move)
-        printState(state)
-        input()
-        valid = False
+      # if not isValid(state, move, calling):
+      #   print("not a valid move lil bro: ", move)
+      #   printState(state)
+      #   input()
+      #   valid = False
+      valid = isValid(state, move, calling) and valid
 
       #plays move
       if valid:
-        success = success and move[2] in state[move[1]].hand
-        print(success,'\n')
-        state = playMove(state, move)
+        success = move[2] in state[move[1]].hand and success
+        # print(success,'\n')
+        # state = playMove(state, move)
 
     if not valid:
-      state = prevState
+      # state = prevState
+      print("not valid lil bro: ", moves)
       continue
     else:
       if calling:
         countCalls+=1
       else:
         countMoves+=1
+
+    if calling:
+      if success:
+        for move in moves:
+          print(f'Player {turn} asks Player {move[1]} for {NTOC[move[2]]}\n')
+          playMove(state, move)
+          print(success,'\n')
+        score[team] += 1
+      else:
+        for move in moves:
+          askee = move[1]
+          if move[2] not in state[move[1]].hand:
+            for player in state:
+              if move[2] in player.hand:
+                askee = player.playerNum
+          playMove(state, (move[0], askee, move[2]))    
+        score[not team] += 1  
+    else:
+      print(f'Player {turn} asks Player {move[1]} for {NTOC[move[2]]}\n')
+      playMove(state, moves[0])
+      print(success,'\n')
+
 
     #changes turns
     if success:
@@ -234,8 +268,7 @@ def playGame(state, NumPlayers=NUMPLAYERS):
       #check game over
       if isGameOver(state):
         # [printCards(player.search) for player in state]
-        print(f'\nTotal number of moves: {countMoves}\n')
-        print(f'Total number of calls: {countCalls}\n')
+        
         gameOver = True
       elif not state[turn].hand:
         print(teams)
@@ -250,6 +283,10 @@ def playGame(state, NumPlayers=NUMPLAYERS):
         turn = random.choice(teams[turn < NumPlayers//2])
       else:
         turn = moves[0][1]
+
+  print(f'\nTotal number of moves: {countMoves}\n')
+  print(f'Total number of calls: {countCalls}\n')
+  print(f'Score: {score[0]} - {score[1]}')
 
   return countCalls
 
