@@ -100,11 +100,11 @@ def initialKnowledge(hand, playerNum):
   knowledge = []
   setDeck = set(DECK)
   for i in range(NUMPLAYERS):
-    playerKnowledge = {"known":[],"knownset":[],"possible":[],"numCards":len(hand)}
+    playerKnowledge = {"known":set(),"knownset":set(),"possible":set(),"numCards":len(hand)}
     if i != playerNum:
-      playerKnowledge['possible'] = list(setDeck - hand)
+      playerKnowledge['possible'] = setDeck - hand
     else:
-      playerKnowledge['known'] = list(hand)
+      playerKnowledge['known'] = hand
     knowledge.append(playerKnowledge)
   
   return knowledge
@@ -147,7 +147,7 @@ class Player:
       self.search = searchSpace(self.hand)
       self.knowledge[asker]['numCards']+=1
       self.knowledge[askee]['numCards']-=1
-      self.knowledge[asker]['known'].append(card)
+      self.knowledge[asker]['known'].add(card)
       if card in self.knowledge[askee]['known']:
         self.knowledge[askee]['known'].remove(card) 
 
@@ -183,6 +183,7 @@ class Player:
     #it wont call cuz i dont have advanced caling yet
     askee = randOpponent(self.playerNum) #fancy way to get opponents to ask
     while self.knowledge[askee]['numCards'] == 0: 
+      print("uh oh")
       askee = randOpponent(self.playerNum)
 
     card = random.choice([*self.search])
@@ -200,6 +201,7 @@ def makeGame(NumPlayers=NUMPLAYERS):
   return state
 
 def playGame(state, NumPlayers=NUMPLAYERS):
+  printState(state)
   gameOver = False
   turn = random.randint(0, NumPlayers-1)
   countMoves = 0
@@ -306,21 +308,21 @@ def isValid(state, move, calling = False):
 
 def main():
   count = 0
-  # state = makeGame()
-  # calls = playGame(state)
-  calls = 0
-  start = time.time()
-  while calls < 8:
-    count+=1
-    state = makeGame()
-    try:
-      calls = playGame(state)
-    except:
-      input()
-      print("fail")
-  end = time.time()
-  print(f'Count: {count}')
-  print(f'Average time per game: {(end - start)/count:.6f} seconds')
+  state = makeGame()
+  calls = playGame(state)
+  # calls = 0
+  # start = time.time()
+  # while calls < 8:
+  #   count+=1
+  #   state = makeGame()
+  #   try:
+  #     calls = playGame(state)
+  #   except:
+  #     input()
+  #     print("fail")
+  # end = time.time()
+  # print(f'Count: {count}')
+  # print(f'Average time per game: {(end - start)/count:.6f} seconds')
 
 if __name__ == "__main__":
   main()
