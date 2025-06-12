@@ -29,4 +29,48 @@ There's a lot more like:
     - when 2 sets are left if it isn't known what the other team has but 
     their knownset does not include the other set then your team must have it
     and vice versa
-    - 
+    - if n number of cards of the same set are in knownset and they are known
+      to have n cards of that set then those cards in knownset move to known 
+
+
+
+
+Example Scenario:
+ I have 2D and 7D and opponent has 4D and 5D but I don't know that
+  -People have everything in possible
+ I ask for 3D and get it wrong
+  -People add low diamond set to knownset and remove 3D from possible
+ I lose my 2D 
+  -People remove 2D from possible and knownset and move other low diamonds to possible
+ I get asked for 6D its wrong
+  -People remove 6D from my possible
+ I ask for 2D back
+  -People move everything in possible to knownset (4D 5D 7D)
+ I ask for 4D get right
+  -People take 4D from knownset and possible and move to known
+ I ask for 5D get right
+  -People take 5D from knownset and possible and move to known
+  -Since only 7D in knownset it gets added to known
+
+Example Scenario 2:
+ I have 2D and opponent has 3D 4D and 6D
+ I ask for 3D and get right
+  -People put 3D in known and move rest of low Diamond to knownset
+ I ask for 4D and get right
+  -People move 4D from knownset to known
+ I ask for 7D and get wrong
+  -People remove 7D from knownset and possible
+ I lose my 3D
+  -People remove 3D from known, knownset, and possible
+ I lose my 4D
+  -People remove 3D from known, knownset, and possible
+ I get asked 5D and its wrong
+  -People remove
+ I take 3D
+ I take 4D
+ I take 6D
+
+
+Based on these examples:
+  When I lose a card that's in known. The other cards in that
+  set get moved from knownset to possible.
