@@ -499,14 +499,15 @@ def checkKnowledge(state):
   for i,player in enumerate(state):
     hand = player.hand
     for idx in range(NUMPLAYERS):
-      if not hand.issubset((state[idx].knowledge[i]['known'] | state[idx].knowledge[i]['knownset'] | state[idx].knowledge[i]['possible'])):
+      k = state[idx].knowledge[i]
+      if not hand.issubset((k['known'] | k['knownset'] | k['possible'])):
         printState(state)
         printKnowledge(state[idx])
         print(player.asks)
         print(i)
         print('im going to laksdkfsajdjflsd somebody')
         input()
-      if not state[idx].knowledge[i]['known'].issubset(hand):
+      if not k['known'].issubset(hand):
         printState(state)
         printKnowledge(state[idx])
         print(player.asks)
