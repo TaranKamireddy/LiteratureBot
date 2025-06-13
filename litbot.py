@@ -152,6 +152,7 @@ class Player:
     self.knowledge = initialKnowledge(hand, playerNum)
     self.search = searchSpace(hand)
     # self.numCards = [len(DECK)//NUMPLAYERS for _ in range(NUMPLAYERS)]
+    self.asks = set()
     # print(self.search)
     # print(self.knowledge)
     # input()
@@ -165,7 +166,9 @@ class Player:
 
   def update(self, move, success):
     asker, askee, card = move
-    normal = asker != askee
+    normal = (asker < NUMPLAYERS//2) ^ (askee < NUMPLAYERS//2)
+    self.asks.add(move)
+    prev = self
     if not success:
       if not (SETS[CTOSET[card]] & self.knowledge[asker]['known']):
         for c in SETS[CTOSET[card]]:
@@ -183,7 +186,7 @@ class Player:
       if self.playerNum == askee:
         self.hand.remove(card)
         self.search = searchSpace(self.hand)
-      elif self.playerNum == asker:
+      elif self.playerNum == asker and normal:
         self.hand.add(card)
         self.search = searchSpace(self.hand)
 
@@ -226,13 +229,71 @@ class Player:
       if k['numCards'] == len(k['known']) + len(k['knownset']) + len(k['possible']):
         for c in list(k['knownset'] | k['possible']):
           k['known'].add(c)
+          for idx in range(NUMPLAYERS):
+            self.remover(c, idx, 'knownset')
+            self.remover(c, idx, 'possible')
       if k['numCards'] == len(k['known']):
         k['knownset'].clear()
         k['possible'].clear()
 
+    # unique = {}
+    # for k in self.knowledge:
+    #   for rank in ['knownset', 'possible']:
+    #     for c in k[rank]:
+    #       if c not in unique:
+    #         unique[c] = 1
+    #       else:
+    #         unique[c]+=1
+    # print(unique)
+    # unique = {c for c,n in unique.items() if n == 1}
+    # printCards(unique)
+    # input()
+
+    allfound = set()
+    possession = {}
+    duplicate = set()
+    for i,k in enumerate(self.knowledge):
+      for rank in ['knownset', 'possible']:
+        for c in k[rank]:
+          if c in allfound:
+            duplicate.add(c)
+          else:
+            allfound.add(c)
+            possession[c] = i
+    unique = allfound - duplicate
+    if unique:
+      print("\n")
+      printKnowledge(self)
+      print("whoopty doo unique coming for you")
+      printCards(unique)
+    # print(unique)
+    # print(possession)
+    # input()
+    for c in unique:
+      i = possession[c]
+      self.knowledge[i]['known'].add(c)
+      self.remover(c, i, 'knownset')
+      self.remover(c, i, 'possible')
+    if unique:
+      printKnowledge(self)
+    #   input()
+    
+    
+# Player 0: 6H 7H 3H
+# Player 1: 3S 2H 5H
+# Player 2: 2S 6S 2D 6D 4H
+# Player 3:
+# Player 4:
+# Player 5: 4S 5S 7S 3D 4D 5D 7D
+    # for k in self.knowledge:
+    #   for rank in ['knownset', 'possible']:
+    #     for c in k[rank]:
+
     for k in self.knowledge:
       if len(k['known']) > k['numCards']:
+        printKnowledge(prev)
         printKnowledge(self)
+        print('womp womp')
         input()
         break
 
@@ -277,14 +338,16 @@ class Player:
      
     team = self.playerNum >= (h := NUMPLAYERS//2)
     #TODO Fix complex calling
-    # combined = {card for player in self.knowledge[team * h:team * h + h] for card in player['known']}
-    # for card in self.knowledge[self.playerNum]['known']:
-    #   if SETS[CTOSET[card]].issubset(combined):
-    #     for c in SETS[CTOSET[card]]:
-    #       for i in range(team * h, team * h + h):
-    #         if c in self.knowledge[i]['known']:
-    #           moves.append((self.playerNum, i, c))
-    #     return moves
+    combined = {card for player in self.knowledge[team * h:team * h + h] for card in player['known']}
+    for card in self.knowledge[self.playerNum]['known']:
+      if SETS[CTOSET[card]].issubset(combined):
+        for c in SETS[CTOSET[card]]:
+          for i in range(team * h, team * h + h):
+            if c in self.knowledge[i]['known']:
+              moves.append((self.playerNum, i, c))
+        # print(moves)
+        # input()
+        return moves
 
     for rank in ['known', 'knownset', 'possible']:
       for i in range((not team) * h, (not team) * h + h):
@@ -295,11 +358,18 @@ class Player:
           moves.append((self.playerNum, i, list(match)[0]))
           return moves
         
-
-    askee = randOpponent(self.playerNum) #fancy way to get opponents to ask
-    while self.knowledge[askee]['numCards'] == 0: 
-      print("uh oh")
-      askee = randOpponent(self.playerNum)
+    
+    opponents = [i for i in range((not team) * h, (not team) * h + h) if self.knowledge[i]['numCards']]
+    if not opponents:
+      print("uh oh no ppl to ask :(")
+      # input()
+    askee = random.choice(opponents)
+    # askee = randOpponent(self.playerNum) #fancy way to get opponents to ask
+    # while self.knowledge[askee]['numCards'] == 0:
+    #   printKnowledge(self)
+    #   print("uh oh")
+    #   input()
+    #   askee = randOpponent(self.playerNum)
 
     card = random.choice([*self.search])
     # print(askee, NTOC[card])
@@ -352,6 +422,8 @@ def playGame(state, NumPlayers=NUMPLAYERS):
     # printState(state)
     # printKnowledge(state)
     #plays moves
+    
+
     if calling:
       if success:
         # printState(state)
@@ -389,7 +461,9 @@ def playGame(state, NumPlayers=NUMPLAYERS):
       teams[team].remove(turn)
 
     
-    printState(state)
+    # printState(state)
+    # printKnowledge(state)
+    checkKnowledge(state)
 
     #changes turns
     if success:
@@ -402,9 +476,10 @@ def playGame(state, NumPlayers=NUMPLAYERS):
       elif not state[turn].hand:
         print(teams)
         if teams[team]:
-
+          print(turn)
           turn = random.choice(teams[team])
         else:
+          print(turn)
           turn = random.choice(teams[not team])
     else:
       if len(moves) > 1:
@@ -419,6 +494,25 @@ def playGame(state, NumPlayers=NUMPLAYERS):
   # printKnowledge(state)
 
   return countCalls
+
+def checkKnowledge(state):
+  for i,player in enumerate(state):
+    hand = player.hand
+    for idx in range(NUMPLAYERS):
+      if not hand.issubset((state[idx].knowledge[i]['known'] | state[idx].knowledge[i]['knownset'] | state[idx].knowledge[i]['possible'])):
+        printState(state)
+        printKnowledge(state[idx])
+        print(player.asks)
+        print(i)
+        print('im going to laksdkfsajdjflsd somebody')
+        input()
+      if not state[idx].knowledge[i]['known'].issubset(hand):
+        printState(state)
+        printKnowledge(state[idx])
+        print(player.asks)
+        print(i)
+        print('im going to hurt somebody')
+        input()
 
 def finished(state):
   for player in state:
@@ -455,13 +549,13 @@ def main():
   calls = playGame(state)
   # calls = 0
   # start = time.time()
-  # while calls < 6:
+  # while True:
   #   count+=1
   #   state = makeGame()
   #   try:
   #     calls = playGame(state)
   #   except:
-  #     input()
+  #     # input()
   #     print("fail")
   # end = time.time()
   # print(f'Count: {count}')
