@@ -256,11 +256,46 @@ class Player:
     # for i,player in enumerate(self.knowledge):
     #   if i < NUMPLAYERS//2 == self.playerNum < NUMPLAYERS//2: #skips over teammates
     #     continue
+    # if (call := easyCall(self.hand)):
+    #   return [(self.playerNum, self.playerNum, card) for card in list(call)]
+
+    # #TODO need to change this stupid ahh code because if the opponets are all gone
+    # #it wont call cuz i dont have advanced caling yet
+    # askee = randOpponent(self.playerNum) #fancy way to get opponents to ask
+    # while self.knowledge[askee]['numCards'] == 0: 
+    #   print("uh oh")
+    #   askee = randOpponent(self.playerNum)
+
+    # card = random.choice([*self.search])
+    # # print(askee, NTOC[card])
+    # move = [(self.playerNum, askee, card)]
+    # print("")
+    moves = []
+
     if (call := easyCall(self.hand)):
       return [(self.playerNum, self.playerNum, card) for card in list(call)]
+     
+    team = self.playerNum >= (h := NUMPLAYERS//2)
+    #TODO Fix complex calling
+    # combined = {card for player in self.knowledge[team * h:team * h + h] for card in player['known']}
+    # for card in self.knowledge[self.playerNum]['known']:
+    #   if SETS[CTOSET[card]].issubset(combined):
+    #     for c in SETS[CTOSET[card]]:
+    #       for i in range(team * h, team * h + h):
+    #         if c in self.knowledge[i]['known']:
+    #           moves.append((self.playerNum, i, c))
+    #     return moves
 
-    #TODO need to change this stupid ahh code because if the opponets are all gone
-    #it wont call cuz i dont have advanced caling yet
+    for rank in ['known', 'knownset', 'possible']:
+      for i in range((not team) * h, (not team) * h + h):
+        # print(self.knowledge[i][rank], self.search)
+        match = self.knowledge[i][rank] & self.search
+        # print(match, '\n')
+        if match:
+          moves.append((self.playerNum, i, list(match)[0]))
+          return moves
+        
+
     askee = randOpponent(self.playerNum) #fancy way to get opponents to ask
     while self.knowledge[askee]['numCards'] == 0: 
       print("uh oh")
@@ -268,10 +303,9 @@ class Player:
 
     card = random.choice([*self.search])
     # print(askee, NTOC[card])
-    move = [(self.playerNum, askee, card)]
-    # print("")
+    moves = [(self.playerNum, askee, card)]
       
-    return move
+    return moves
     #use knowledge to make move
 
 def makeGame(NumPlayers=NUMPLAYERS):
@@ -314,6 +348,9 @@ def playGame(state, NumPlayers=NUMPLAYERS):
         countCalls+=1
       else:
         countMoves+=1
+
+    # printState(state)
+    # printKnowledge(state)
     #plays moves
     if calling:
       if success:
@@ -322,6 +359,8 @@ def playGame(state, NumPlayers=NUMPLAYERS):
         for move in moves:
           print(f'Player {turn} asks Player {move[1]} for {NTOC[move[2]]}\n')
           playMove(state, move)
+          if not state[move[1]].hand:
+            teams[move[1] >= NumPlayers//2].remove(move[1])
           print(success,'\n')
         # printState(state)
         # printKnowledge(state)
@@ -334,7 +373,9 @@ def playGame(state, NumPlayers=NUMPLAYERS):
             for player in state:
               if move[2] in player.hand:
                 askee = player.playerNum
-          playMove(state, (move[0], askee, move[2]))    
+          playMove(state, (move[0], askee, move[2]))
+          if not state[askee].hand:
+            teams[askee >= NumPlayers//2].remove(askee) 
           
         score[not team] += 1  
     else:
@@ -342,6 +383,13 @@ def playGame(state, NumPlayers=NUMPLAYERS):
       playMove(state, moves[0])
       print(success,'\n')
 
+      if not state[moves[0][1]].hand:
+        teams[not team].remove(moves[0][1])
+    if not state[turn].hand and turn in teams[team]:
+      teams[team].remove(turn)
+
+    
+    printState(state)
 
     #changes turns
     if success:
@@ -349,11 +397,15 @@ def playGame(state, NumPlayers=NUMPLAYERS):
       # [printCards(player.search) for player in state]
 
       #check game over
-      if isGameOver(state):
+      if finished(state):
         gameOver = True
       elif not state[turn].hand:
-        teams[team].remove(turn)
-        turn = random.choice(teams[team])
+        print(teams)
+        if teams[team]:
+
+          turn = random.choice(teams[team])
+        else:
+          turn = random.choice(teams[not team])
     else:
       if len(moves) > 1:
         turn = random.choice(teams[not team])
@@ -367,6 +419,12 @@ def playGame(state, NumPlayers=NUMPLAYERS):
   # printKnowledge(state)
 
   return countCalls
+
+def finished(state):
+  for player in state:
+    if player.hand:
+      return False
+  return True
 
 def isGameOver(state):
   combinedHand = {card for player in state[:NUMPLAYERS//2] for card in player.hand}
