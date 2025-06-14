@@ -274,6 +274,12 @@ class Player:
       self.knowledge[i]['known'].add(c)
       self.remover(c, i, 'knownset')
       self.remover(c, i, 'possible')
+      for cs in SETS[CTOSET[c]]:
+          if cs != c:
+            if cs in self.knowledge[i]['knownset']:
+              self.knowledge[i]['knownset'].remove(cs)
+              self.knowledge[i]['possible'].add(cs)
+
     if unique:
       printKnowledge(self)
     #   input()
