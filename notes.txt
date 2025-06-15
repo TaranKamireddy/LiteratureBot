@@ -70,7 +70,40 @@ Example Scenario 2:
  I take 4D
  I take 6D
 
-
 Based on these examples:
   When I lose a card that's in known. The other cards in that
   set get moved from knownset to possible.
+
+Strategy:
+  -Locking a dangerous player out
+  -Going for a set that's close to completion
+  -Asking less risky players (Like me asking Soumik instead of Meyan)
+  -Utilizing limited repeat asks
+  -Not leaking information about sets (minimizing other people's knowledge)
+
+#list of players with set of cards in num format ex [{1,2,3},{23,45,25}]
+#2, 3, 4, 5, 6, 7, 9, 10, 11, 12, 13, 14
+#15, 16, 17, 18, 19, 20, 22, 23, 24, 25, 26, 27
+#28, etc basically +13 for next suit
+
+# 6 * 2 * 4 = 48
+# even factors of 48 are 2, 4, 6, 8, 12, 16, 24
+
+# playGame will first randomly pick a starting Player
+# then it will call makeMove for that player
+# once makeMove is called, update will be called on all
+# players. a move can be two things, a call or an ask. 
+# an ask will be defined as Asker, Askee, and Card. a call 
+# is more complicated. a call will be defined as a series
+# of asks to first opponents and then teammates. if a call
+# is correct the scores will change accordingly
+
+#assumptions:
+#all players start with equal number of cards
+#team distributions are balanced
+#only 2 teams
+
+#ideas for strats
+#want to make a move for a card with the least guessing and
+#choose the person with the highest chance of having it
+#this should make it so it mostly goes for 1 card at a time
