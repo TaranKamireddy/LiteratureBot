@@ -125,7 +125,7 @@ class Player(ABC):
 
   def update(self, move, success):
     asker, askee, card = move
-    normal = (asker < NUMPLAYERS//2) ^ (askee < NUMPLAYERS//2)
+    normal = (asker < NUMPLAYERS//2) ^ (askee < NUMPLAYERS//2) #xor to find team asking not team
     self.asks.add(move)
     prev = self #for debugging
     #wrong ask
@@ -230,6 +230,7 @@ class goodPlayer(Player):
 
     #Guarantee Easy Calling
     if (call := easyCall(self.hand)):
+      print('Easy Call')
       return [(self.playerNum, self.playerNum, card) for card in list(call)]
 
     team = self.playerNum >= (h := NUMPLAYERS//2)
@@ -241,6 +242,7 @@ class goodPlayer(Player):
           for i in range(team * h, team * h + h):
             if c in self.knowledge[i]['known']:
               moves.append((self.playerNum, i, c))
+        print('Complex Call')
         return moves
 
     #idea: don't ask for known cards in a set unless you know enough of them
@@ -253,26 +255,118 @@ class goodPlayer(Player):
     #       return moves
 
     # Guarantee Ask
-    for i in range((not team) * h, (not team) * h + h):
-      match = self.knowledge[i]['known'] & self.search
-      if match:
-        moves.append((self.playerNum, i, list(match)[0]))
-        return moves
-      
-    weighted = {card:(1, self.playerNum) for card in self.hand}
-    # setsToCall = set()
+    # for i in range((not team) * h, (not team) * h + h):
+    #   match = self.knowledge[i]['known'] & self.search
+    #   if match:
+    #     moves.append((self.playerNum, i, list(match)[0]))
+    #     print('Guarantee Ask')
+    #     return moves
+
+    #new attempt at weighted
+    #weighted idea {card: [weight, weight, weight, ...]}
+    #weighted idea {card: (bestOpponentWeight, opponent)}
+    weighted = {card:[0]*6 for card in self.search}
+    knownset = set()
     for card in self.search:
-      # setsToCall.add(CTOSET[card])
       for i, k in enumerate(self.knowledge):
         if card in k['known']:
-          weighted[card] = (1, i)
-        elif (b := card in k['knownset']) or card in k['possible']:
-          if card in weighted:
-            prob = weighted[card][0]
-            askee = [weighted[card][1], i][b]
-            weighted[card] = (1 / (1/prob + 1), askee)
-          else:
-            weighted[card] = (1, i)
+          weighted[card][i] = 1
+        elif (isKS := card in k['knownset']) or card in k['possible']:
+          if isKS:
+            knownset.add((card, i))
+          weighted[card][i] = 1
+          newWeight = 1/len([prob for prob in weighted[card] if prob])
+          for idx, prob in enumerate(weighted[card]):
+              weighted[card][idx] = newWeight if prob else 0
+    for (card, i) in knownset:
+      weighted[card][i] += 0.2
+    # print(weighted)
+    # input()
+    bestMoves = []
+    bestChance = 0
+    for card, weights in weighted.items():
+      # print(card, weights)
+      # print((not team) * h, (not team) * h + h)
+      notTeam = weights[(not team) * h:(not team) * h + h]
+      # print(notTeam)
+      currChance = max(notTeam)
+      if bestChance > 0 and bestChance == currChance:
+        bestMoves.append((self.playerNum, notTeam.index(currChance) + (not team) * h, card))
+      if bestChance < currChance:
+        bestChance = currChance
+        bestMoves = [(self.playerNum, notTeam.index(currChance) + (not team) * h, card)]
+  
+    if bestMoves:
+      bestMove = random.choice(bestMoves)
+      moves.append(bestMove)
+      printKnowledge(self)
+      print('Guess Ask')
+      print(bestMove, bestChance)
+      # input()
+      # print(bestMove, bestChance)
+      # input()
+      # print(bestMoves)
+      return moves
+
+    # weighted = {card:(1, self.playerNum) for card in self.hand}
+    #attempt at weighted gone wrong :O (move count went up)
+    # weighted = {}
+    # # setsToCall = set()
+    # for card in self.search:
+    #   # setsToCall.add(CTOSET[card])
+    #   for i, k in enumerate(self.knowledge):
+    #     if card in k['known']:
+    #       weighted[card] = (1, i)
+    #     elif (b := card in k['knownset']) or card in k['possible']:
+    #       if card in weighted:
+    #         prob, askee = weighted[card]
+    #         # print(askee, team)
+    #         # askee 
+    #         if (askee >= NUMPLAYERS//2) == team:
+    #         #team to team: swap
+    #         #team to opp: swap
+    #           askee = i
+    #         #opp to team: don't swap
+    #         elif (i >= NUMPLAYERS//2) != team:
+    #         #known opp to possible opp: dont swap
+    #           if b:
+    #         #possible opp to known opp: swap
+    #             askee = i
+    #             # prob += -300
+    #             # print('i love trains')
+    #             # input()
+    #         # print(askee)
+    #         # input()
+    #         weighted[card] = (1 / (1/prob + 1), askee)
+    #       else:
+    #         weighted[card] = (1, i)
+    
+    # bestChance = 0
+    # bestCard = 0
+    # for card, weight in weighted.items():
+    #   # print(card, weight)
+    #   # input()
+    #   if (weight[1] >= NUMPLAYERS//2) != team:
+    #     if weight[0] > bestChance:
+    #       # print('Guess Ask')
+    #       # print(card, weight)
+    #       # input()
+    #       bestChance = weight[0]
+    #       bestCard = card
+
+    # if bestCard > 0:
+    #   moves.append((self.playerNum, weighted[bestCard][1], bestCard))
+    #   print('Guess Ask')
+    #   print(moves)
+    #   print(bestCard, bestChance)
+    #   printKnowledge(self)
+    #   print(len(weighted))
+    #   print(len(self.search))
+    #   # if bestChance > 0.5 and bestChance < 1:
+    #     # input()
+    #   # input()
+    #   return moves
+    # input()
     
     opponents = [i for i in range((not team) * h, (not team) * h + h) if self.knowledge[i]['numCards']]
     if not opponents:
@@ -305,6 +399,7 @@ class goodPlayer(Player):
         moves.append((self.playerNum, w[1], card))
       
       print(moves)
+      print('Force Call')
       return moves
 
 
@@ -313,7 +408,10 @@ class goodPlayer(Player):
     card = random.choice([*self.search])
     # print(askee, NTOC[card])
     moves = [(self.playerNum, askee, card)]
-    
+    # print(weighted)
+    # printKnowledge(self)
+    # print('random')
+    # input()
     return moves
     #use knowledge to make move
 
@@ -367,6 +465,7 @@ def playGame(state, NumPlayers=NUMPLAYERS):
     #not valid :(
     if not valid:
       print("not valid lil bro: ", moves)
+      input()
       continue
     else:
       if calling:
@@ -379,6 +478,7 @@ def playGame(state, NumPlayers=NUMPLAYERS):
     #   printKnowledge(state)
     #   input()
 
+    # input()
     #plays moves
     
 
@@ -415,7 +515,7 @@ def playGame(state, NumPlayers=NUMPLAYERS):
       playMove(state, moves[0])
       print(success,'\n')
 
-      if not state[moves[0][1]].hand:
+      if not state[moves[0][1]].hand: #super ugly code 
         teams[not team].remove(moves[0][1])
     if not state[turn].hand and turn in teams[team]:
       teams[team].remove(turn)
@@ -424,10 +524,12 @@ def playGame(state, NumPlayers=NUMPLAYERS):
     # printState(state)
     # printKnowledge(state)
     # checkKnowledge(state)
+    # printKnowledge(state)
 
     #changes turns
     if success:
-      printState(state)
+      # printState(state)
+      
       # [printCards(player.search) for player in state]
 
       #check game over
@@ -451,6 +553,8 @@ def playGame(state, NumPlayers=NUMPLAYERS):
           turn = random.choice(teams[team])
       else:
         turn = moves[0][1]
+    printState(state)
+    input()
 
   print(f'\nTotal number of moves: {countMoves}')
   print(f'Total number of calls: {countCalls}')
@@ -517,14 +621,14 @@ def main():
   # stats = playGame(state)
   # calls = 0
   start = time.time()
-  while count < 1:
+  while count < 100:
     count+=1
     state = makeGame(players)
-    try:
-      stats = playGame(state)
-      moveCount += stats[1]
-    except:
-      print("fail")
+    # try:
+    stats = playGame(state)
+    moveCount += stats[1]
+    # except:
+    #   print("fail")
   end = time.time()
   print(f'Count: {count}')
   print(f'Average move count: {moveCount/count:.3f} moves')
