@@ -131,7 +131,8 @@ class Player(ABC):
     #wrong ask
     if not success:
       if not (SETS[CTOSET[card]] & self.knowledge[asker]['known']):
-        for c in SETS[CTOSET[card]]:
+        #if the asker is known to have a card in that set then don't push cards to knownset
+        for c in SETS[CTOSET[card]]: #add cards to knownset from possible
           if c != card:
             if c in self.knowledge[asker]['possible']:
               self.knowledge[asker]['knownset'].add(c)
@@ -150,6 +151,8 @@ class Player(ABC):
         self.hand.add(card)
         self.search = searchSpace(self.hand)
 
+      wasKnown = card in self.knowledge[askee]['known']
+
       self.knowledge[askee]['numCards']-=1
       self.remover(card, askee, 'known')
       if normal:
@@ -157,15 +160,27 @@ class Player(ABC):
         self.knowledge[asker]['known'].add(card)
 
       for i in range(NUMPLAYERS):
-        if i != self.playerNum: 
-          self.remover(card, i, 'possible')
-          self.remover(card, i, 'knownset')
+        # if i != self.playerNum: 
+        self.remover(card, i, 'possible')
+        self.remover(card, i, 'knownset')
       
-      for c in SETS[CTOSET[card]]:
-        for i in range(NUMPLAYERS):
-          if c in self.knowledge[i]['knownset']:
-            self.knowledge[i]['knownset'].remove(c)
-            self.knowledge[i]['possible'].add(c)
+      #if the card was in known then you should keep the cards from that set in knownset
+      #otherwise, you can move them back to possible
+      if not wasKnown:
+        for c in SETS[CTOSET[card]]:
+          if c in self.knowledge[askee]['knownset']:
+            self.knowledge[askee]['knownset'].remove(c)
+            self.knowledge[askee]['possible'].add(c)
+          
+
+      #idk why this is happening to everyone
+      #for every card in the set remove it from everyone's knownset and move it to possible
+      #why did I write this stupid ass code
+      # for c in SETS[CTOSET[card]]:
+      #   for i in range(NUMPLAYERS):
+      #     if c in self.knowledge[i]['knownset']:
+      #       self.knowledge[i]['knownset'].remove(c)
+      #       self.knowledge[i]['possible'].add(c)
 
     #Only 1 card from set in knownset
     for i in range(NUMPLAYERS):
@@ -299,7 +314,7 @@ class goodPlayer(Player):
     if bestMoves:
       bestMove = random.choice(bestMoves)
       moves.append(bestMove)
-      printKnowledge(self)
+      # printKnowledge(self)
       print('Guess Ask')
       print(bestMove, bestChance)
       # input()
@@ -445,6 +460,7 @@ def playGame(state, NumPlayers=NUMPLAYERS):
   turn = random.randint(0, NumPlayers-1)
   countMoves = 0
   countCalls = 0
+  moveAccuracy = 0
   score = [0, 0]
   teams = [[i for i in range(0,NumPlayers//2)], [i for i in range(NumPlayers//2, NumPlayers)]]
   
@@ -472,6 +488,8 @@ def playGame(state, NumPlayers=NUMPLAYERS):
         countCalls+=1
       else:
         countMoves+=1
+        if success:
+          moveAccuracy += 1
 
     # printState(state)
     # if random.randint(1, 50) == 33:
@@ -528,7 +546,7 @@ def playGame(state, NumPlayers=NUMPLAYERS):
 
     #changes turns
     if success:
-      # printState(state)
+      printState(state)
       
       # [printCards(player.search) for player in state]
 
@@ -553,16 +571,17 @@ def playGame(state, NumPlayers=NUMPLAYERS):
           turn = random.choice(teams[team])
       else:
         turn = moves[0][1]
-    printState(state)
-    input()
+    # printState(state)
+    # input()
 
   print(f'\nTotal number of moves: {countMoves}')
+  print(f'Move Accuracy: {moveAccuracy}/{countMoves} or {100 * moveAccuracy/countMoves:.2f}%')
   print(f'Total number of calls: {countCalls}')
   print(f'Score: {score[0]} - {score[1]}')
 
   # printKnowledge(state)
 
-  return (score, countMoves, countCalls)
+  return (score, countMoves, countCalls, moveAccuracy)
 
 # def checkKnowledge(state):
 #   for i,player in enumerate(state):
@@ -616,22 +635,25 @@ def isValid(state, move, calling = False):
 def main():
   count = 0
   moveCount = 0
+  moveAccuracy = 0
   players = ['P']*(NUMPLAYERS//2) + ['P']*(NUMPLAYERS//2)
   # state = makeGame(players)
   # stats = playGame(state)
   # calls = 0
   start = time.time()
-  while count < 100:
+  while count < 10:
     count+=1
     state = makeGame(players)
     # try:
     stats = playGame(state)
     moveCount += stats[1]
+    moveAccuracy += stats[3]
     # except:
     #   print("fail")
   end = time.time()
   print(f'Count: {count}')
   print(f'Average move count: {moveCount/count:.3f} moves')
+  print(f'Average move accuracy: {100 * moveAccuracy/moveCount:.2f}%')
   print(f'Average time per game: {(end - start)/count:.6f} seconds')
 
 if __name__ == "__main__":
