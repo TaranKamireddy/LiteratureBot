@@ -439,6 +439,36 @@ class randPlayer(Player):
     opponents = [i for i in range((not team) * h, (not team) * h + h) if self.knowledge[i]['numCards']]
     if not opponents:
       print("uh oh no ppl to ask :(")
+      weighted = {card:(1, self.playerNum) for card in self.hand}
+      setsToCall = set()
+      for card in self.search:
+        setsToCall.add(CTOSET[card])
+        for i, k in enumerate(self.knowledge):
+          if card in k['known']:
+            weighted[card] = (1, i)
+          elif (b := card in k['knownset']) or card in k['possible']:
+            if card in weighted:
+              prob = weighted[card][0]
+              askee = [weighted[card][1], i][b]
+              weighted[card] = (1 / (1/prob + 1), askee)
+            else:
+              weighted[card] = (1, i)
+      print(weighted)
+      bestChance = 0
+      bestSet = -1
+      for s in setsToCall:
+        chance = sum([weighted[card][0] for card in SETS[s]])
+        if chance > bestChance:
+          bestChance = chance
+          bestSet = s
+      moves = []
+      for card in SETS[bestSet]:
+        w = weighted[card]
+        moves.append((self.playerNum, w[1], card))
+      
+      print(moves)
+      print('Force Call')
+      return moves
       # input()
     askee = random.choice(opponents)
     card = random.choice([*self.search])
@@ -636,24 +666,28 @@ def main():
   count = 0
   moveCount = 0
   moveAccuracy = 0
+  score = [0, 0]
   players = ['P']*(NUMPLAYERS//2) + ['P']*(NUMPLAYERS//2)
   # state = makeGame(players)
   # stats = playGame(state)
   # calls = 0
   start = time.time()
-  while count < 10:
+  while count < 100:
     count+=1
     state = makeGame(players)
     # try:
     stats = playGame(state)
     moveCount += stats[1]
     moveAccuracy += stats[3]
+    score[0] += stats[0][0]
+    score[1] += stats[0][1]
     # except:
     #   print("fail")
   end = time.time()
   print(f'Count: {count}')
   print(f'Average move count: {moveCount/count:.3f} moves')
   print(f'Average move accuracy: {100 * moveAccuracy/moveCount:.2f}%')
+  print(f'Average score: {score[0]/count:.2f} - {score[1]/count:.2f}')
   print(f'Average time per game: {(end - start)/count:.6f} seconds')
 
 if __name__ == "__main__":
