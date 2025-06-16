@@ -245,34 +245,34 @@ class goodPlayer(Player):
 
     #idea: don't ask for known cards in a set unless you know enough of them
     # ranks = []
-    for rank in ['known', 'knownset', 'possible']:
-      for i in range((not team) * h, (not team) * h + h):
-        match = self.knowledge[i][rank] & self.search
-        if match:
-          moves.append((self.playerNum, i, list(match)[0]))
-          return moves
+    # for rank in ['known', 'knownset', 'possible']:
+    #   for i in range((not team) * h, (not team) * h + h):
+    #     match = self.knowledge[i][rank] & self.search
+    #     if match:
+    #       moves.append((self.playerNum, i, list(match)[0]))
+    #       return moves
 
-    #Guarantee Ask
-    # for i in range((not team) * h, (not team) * h + h):
-    #   match = self.knowledge[i]['known'] & self.search
-    #   if match:
-    #     moves.append((self.playerNum, i, list(match)[0]))
-    #     return moves
+    # Guarantee Ask
+    for i in range((not team) * h, (not team) * h + h):
+      match = self.knowledge[i]['known'] & self.search
+      if match:
+        moves.append((self.playerNum, i, list(match)[0]))
+        return moves
       
-    # weighted = {card:(1, self.playerNum) for card in self.hand}
-    # # setsToCall = set()
-    # for card in self.search:
-    #   # setsToCall.add(CTOSET[card])
-    #   for i, k in enumerate(self.knowledge):
-    #     if card in k['known']:
-    #       weighted[card] = (1, i)
-    #     elif (b := card in k['knownset']) or card in k['possible']:
-    #       if card in weighted:
-    #         prob = weighted[card][0]
-    #         askee = [weighted[card][1], i][b]
-    #         weighted[card] = (1 / (1/prob + 1), askee)
-    #       else:
-    #         weighted[card] = (1, i)
+    weighted = {card:(1, self.playerNum) for card in self.hand}
+    # setsToCall = set()
+    for card in self.search:
+      # setsToCall.add(CTOSET[card])
+      for i, k in enumerate(self.knowledge):
+        if card in k['known']:
+          weighted[card] = (1, i)
+        elif (b := card in k['knownset']) or card in k['possible']:
+          if card in weighted:
+            prob = weighted[card][0]
+            askee = [weighted[card][1], i][b]
+            weighted[card] = (1 / (1/prob + 1), askee)
+          else:
+            weighted[card] = (1, i)
     
     opponents = [i for i in range((not team) * h, (not team) * h + h) if self.knowledge[i]['numCards']]
     if not opponents:

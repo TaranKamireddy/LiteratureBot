@@ -108,3 +108,90 @@ Strategy:
 #want to make a move for a card with the least guessing and
 #choose the person with the highest chance of having it
 #this should make it so it mostly goes for 1 card at a time
+
+Calculating Probability:
+
+Let's take a look at a simpler example. Let's say there are only 4 players and 4 sets with 4 cards.
+1, 2, 3, 4 of H, S, C, D.
+
+Example Scenario:
+ I have 1H, 2H, 3H, and 1D.
+ At the start of the game the chance someone has 4H is 1/3 because there are 3 players that are not me.
+ If someone asks for a Heart then I know they have the 4H so the probability becomes 1.
+
+ I have 1H, 2H, and 1D, 2D.
+ The chance someone has the 4H is still 1/3. If an opponent asks for 1H what would the probability be?
+ Well they must have either the 3H or 4H so it's a 50% chance they have it. 
+ The scenarios are (I'm team 1):
+  -Opp1 has 3H; Opp2 has 4H
+  -Opp1 has 3H; Team2 has 4H
+  -Opp1 has 4H; Opp2 has 3H
+  -Opp1 has 4H; Team2 has 3H
+  -Opp1 has 3H, 4H
+
+This means the chance Opp1 has 3H or 4H is 3/5. The chance someone else has 4H or 3H is 1/5.
+Lets say in another example I only have 1H. Opp1 asks my Team2 for 1H.
+ The scenarios are (I'm Team1):
+  3x of this just swapping around cards
+  -Opp1 has 2H; Opp2 has 3H, 4H
+  -Opp1 has 2H; Team2 has 3H, 4H
+  -Opp1 has 2H; Opp2 has 3H; Team2 has 4H
+  -Opp1 has 2H; Team2 has 3H; Opp2 has 4H
+  3x of this just swapping around cards
+  -Opp1 has 2H, 3H; Opp2 has 4H
+  -Opp1 has 2H, 3H; Team2 has 4H
+  1x of this
+  -Opp1 has 2H, 3H, 4H
+
+There are a total of 19 scenarios. The chance Opp1 has 2H, 3H, or 4H is (4 + 4 + 1)/19 or 9/19.
+The chance someone else has a specific heart is (4 + 1)/19 or 5/19.
+
+Lets say instead there are 5 Cards in a set and that I have the 1H 2H and 3H. Opp1 asks Team2 for 1H
+  2x of this
+  -Opp1 has 4H, Opp2 has 5H
+  -Opp1 has 4H, Team2 has 5H
+  1x of this
+  -Opp1 has 4H, 5H
+
+Even though the number of cards in the set increased, since we only care about whats left, the
+probability didn't change. So in this case it's 3/5
+
+Lets instead say there are 6 Players and 4 cards in a set. I have the 1H and 2H. Opp1 asks Team1 for 1H.
+  2x of this
+  -Opp1 has 3H; Opp2 has 4H
+  -Opp1 has 3H; Opp3 has 4H
+  -Opp1 has 3H; Team2 has 4H
+  -Opp1 has 3H; Team3 has 4H
+  1x of this
+  -Opp1 has 3H and 4H
+In this example the probability Opp1 has a specific heart is 5/9. The chance that another person has one is 1/9.
+
+Lets instead say there are 6 Players and 4 cards in a set. I have the 1H. Opp1 asks for 1H to Team1.
+  3 * 2x of this
+  -Opp1 has 2H; Opp2 has 3H; Opp3 has 4H
+  -Opp1 has 2H; Opp2 has 3H; Team2 has 4H
+  -Opp1 has 2H; Opp2 has 3H; Team3 has 4H
+  3 * 4x of this
+  -Opp1 has 2H; Opp2 has 3H, 4H
+  3 * 4x of this
+  -Opp1 has 2H, 3H; Opp2 has 4H
+  1x of this
+  -Opp1 has 2H, 3H, 4H
+
+In this case the chance Opp1 has a specific heart is (2*3 + 4 + 4*2 + 1)/(18 + 12 + 12  + 1) = (19/43)
+The chance someone else has another specific heart is (3 + 1 + 2 + 1)/43 = (6/43)
+
+
+
+Guess for formula:
+ The chance someone has something when they asked for a card in the set is equal to
+ wrong: ((number of cards left in set)*(# of players - 1) + 1)
+ KnownSet:
+  4 Player: 1, 3/5, 9/19
+  6 Player: 1, 5/9, 19/43
+ Possible:
+  4 Player: 0, 1/5, 5/19
+  6 Player: 0, 1/9, 6/43
+
+ 
+ 
