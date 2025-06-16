@@ -228,11 +228,12 @@ class goodPlayer(Player):
   def getMove(self):
     moves = []
 
+    #Guarantee Easy Calling
     if (call := easyCall(self.hand)):
       return [(self.playerNum, self.playerNum, card) for card in list(call)]
-      
+
     team = self.playerNum >= (h := NUMPLAYERS//2)
-    #TODO Fix complex calling
+    #Guarantee Complex Calling
     combined = {card for player in self.knowledge[team * h:team * h + h] for card in player['known']}
     for card in self.knowledge[self.playerNum]['known']:
       if SETS[CTOSET[card]].issubset(combined):
@@ -242,18 +243,72 @@ class goodPlayer(Player):
               moves.append((self.playerNum, i, c))
         return moves
 
+    #idea: don't ask for known cards in a set unless you know enough of them
+    # ranks = []
     for rank in ['known', 'knownset', 'possible']:
       for i in range((not team) * h, (not team) * h + h):
         match = self.knowledge[i][rank] & self.search
         if match:
           moves.append((self.playerNum, i, list(match)[0]))
           return moves
-        
+
+    #Guarantee Ask
+    # for i in range((not team) * h, (not team) * h + h):
+    #   match = self.knowledge[i]['known'] & self.search
+    #   if match:
+    #     moves.append((self.playerNum, i, list(match)[0]))
+    #     return moves
+      
+    # weighted = {card:(1, self.playerNum) for card in self.hand}
+    # # setsToCall = set()
+    # for card in self.search:
+    #   # setsToCall.add(CTOSET[card])
+    #   for i, k in enumerate(self.knowledge):
+    #     if card in k['known']:
+    #       weighted[card] = (1, i)
+    #     elif (b := card in k['knownset']) or card in k['possible']:
+    #       if card in weighted:
+    #         prob = weighted[card][0]
+    #         askee = [weighted[card][1], i][b]
+    #         weighted[card] = (1 / (1/prob + 1), askee)
+    #       else:
+    #         weighted[card] = (1, i)
     
     opponents = [i for i in range((not team) * h, (not team) * h + h) if self.knowledge[i]['numCards']]
     if not opponents:
       print("uh oh no ppl to ask :(")
-      # input()
+      weighted = {card:(1, self.playerNum) for card in self.hand}
+      setsToCall = set()
+      for card in self.search:
+        setsToCall.add(CTOSET[card])
+        for i, k in enumerate(self.knowledge):
+          if card in k['known']:
+            weighted[card] = (1, i)
+          elif (b := card in k['knownset']) or card in k['possible']:
+            if card in weighted:
+              prob = weighted[card][0]
+              askee = [weighted[card][1], i][b]
+              weighted[card] = (1 / (1/prob + 1), askee)
+            else:
+              weighted[card] = (1, i)
+      print(weighted)
+      bestChance = 0
+      bestSet = -1
+      for s in setsToCall:
+        chance = sum([weighted[card][0] for card in SETS[s]])
+        if chance > bestChance:
+          bestChance = chance
+          bestSet = s
+      
+      for card in SETS[bestSet]:
+        w = weighted[card]
+        moves.append((self.playerNum, w[1], card))
+      
+      print(moves)
+      return moves
+
+
+    #Random Move
     askee = random.choice(opponents)
     card = random.choice([*self.search])
     # print(askee, NTOC[card])
@@ -319,8 +374,11 @@ def playGame(state, NumPlayers=NUMPLAYERS):
       else:
         countMoves+=1
 
-    printState(state)
-    # printKnowledge(state)
+    # printState(state)
+    # if random.randint(1, 50) == 33:
+    #   printKnowledge(state)
+    #   input()
+
     #plays moves
     
 
@@ -384,8 +442,13 @@ def playGame(state, NumPlayers=NUMPLAYERS):
           print(turn)
           turn = random.choice(teams[not team])
     else:
-      if len(moves) > 1:
-        turn = random.choice(teams[not team])
+      if calling:
+        if finished(state):
+          gameOver = True
+        elif teams[not team]:
+          turn = random.choice(teams[not team])
+        else:
+          turn = random.choice(teams[team])
       else:
         turn = moves[0][1]
 
@@ -395,7 +458,7 @@ def playGame(state, NumPlayers=NUMPLAYERS):
 
   # printKnowledge(state)
 
-  return countCalls
+  return (score, countMoves, countCalls)
 
 # def checkKnowledge(state):
 #   for i,player in enumerate(state):
@@ -448,21 +511,23 @@ def isValid(state, move, calling = False):
 
 def main():
   count = 0
-  players = ['P']*(NUMPLAYERS//2) + ['R']*(NUMPLAYERS//2)
-  state = makeGame(players)
-  calls = playGame(state)
-  calls = 0
+  moveCount = 0
+  players = ['P']*(NUMPLAYERS//2) + ['P']*(NUMPLAYERS//2)
+  # state = makeGame(players)
+  # stats = playGame(state)
+  # calls = 0
   start = time.time()
-  while count < 1000:
+  while count < 1:
     count+=1
     state = makeGame(players)
     try:
-      calls = playGame(state)
+      stats = playGame(state)
+      moveCount += stats[1]
     except:
-      # input()
       print("fail")
   end = time.time()
   print(f'Count: {count}')
+  print(f'Average move count: {moveCount/count:.3f} moves')
   print(f'Average time per game: {(end - start)/count:.6f} seconds')
 
 if __name__ == "__main__":

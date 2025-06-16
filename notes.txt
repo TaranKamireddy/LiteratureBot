@@ -80,6 +80,7 @@ Strategy:
   -Asking less risky players (Like me asking Soumik instead of Meyan)
   -Utilizing limited repeat asks
   -Not leaking information about sets (minimizing other people's knowledge)
+  -Playing long game
 
 #list of players with set of cards in num format ex [{1,2,3},{23,45,25}]
 #2, 3, 4, 5, 6, 7, 9, 10, 11, 12, 13, 14
