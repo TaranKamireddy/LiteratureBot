@@ -43,6 +43,7 @@ def shuffle(cards):
 
 def distribute(cards, players):
   state = []
+  # cards = [CTON[c] for c in ["7H", "2C","4C","KH","10C","7D","2H","5H","3C","JH","QH","JC","9S","JS","5D","KD","9H","5C","2S","3S","4S","4D","9D","QD","7C","9C","6S","2D","3D","QS","KS","4H","6H","10H","AH","QC","6D","AS","AD","3H","6C","5S","KC","7S","AC","10S","10D", "JD"]]
 
   for i,v in enumerate(players):
     hand = set()
@@ -52,6 +53,8 @@ def distribute(cards, players):
       state.append(goodPlayer(i, hand))
     elif v == 'R':
       state.append(randPlayer(i, hand))
+    elif v == 'W':
+      state.append(weightPlayer(i, hand))
   return state
 
 def printCards(cards):
@@ -128,6 +131,15 @@ class Player(ABC):
     normal = (asker < NUMPLAYERS//2) ^ (askee < NUMPLAYERS//2) #xor to find team asking not team
     self.asks.add(move)
     prev = self #for debugging
+    if normal:
+      if not (SETS[CTOSET[card]] & self.knowledge[asker]['known']):
+          #if the asker is known to have a card in that set then don't push cards to knownset
+          for c in SETS[CTOSET[card]]: #add cards to knownset from possible
+            if c != card:
+              if c in self.knowledge[asker]['possible']:
+                self.knowledge[asker]['knownset'].add(c)
+                self.knowledge[asker]['possible'].remove(c)
+
     #wrong ask
     if not success:
       if not (SETS[CTOSET[card]] & self.knowledge[asker]['known']):
@@ -239,6 +251,128 @@ class Player(ABC):
   def getMove(self):
     pass
 
+class weightPlayer(Player):
+  def getMove(self):
+    moves = []
+
+    #Guarantee Easy Calling
+    if (call := easyCall(self.hand)):
+      print('Easy Call')
+      return [(self.playerNum, self.playerNum, card) for card in list(call)]
+
+    team = self.playerNum >= (h := NUMPLAYERS//2)
+    #Guarantee Complex Calling
+    combined = {card for player in self.knowledge[team * h:team * h + h] for card in player['known']}
+    for card in self.knowledge[self.playerNum]['known']:
+      if SETS[CTOSET[card]].issubset(combined):
+        for c in SETS[CTOSET[card]]:
+          for i in range(team * h, team * h + h):
+            if c in self.knowledge[i]['known']:
+              moves.append((self.playerNum, i, c))
+        print('Complex Call')
+        return moves
+
+    #idea: don't ask for known cards in a set unless you know enough of them
+    # ranks = []
+    for rank in ['known', 'knownset', 'possible']:
+      for i in range((not team) * h, (not team) * h + h):
+        match = self.knowledge[i][rank] & self.search
+        if match:
+          moves.append((self.playerNum, i, list(match)[0]))
+          printKnowledge(self)
+          # print(moves)
+          # input()
+          return moves
+    # weighted = {card:[0]*6 for card in self.search}
+    # knownset = set()
+    # for card in self.search:
+    #   for i, k in enumerate(self.knowledge):
+    #     if card in k['known']:
+    #       weighted[card][i] = 1
+    #     elif (isKS := card in k['knownset']) or card in k['possible']:
+    #       if isKS:
+    #         knownset.add((card, i))
+    #       weighted[card][i] = 1
+    #       newWeight = 1/len([prob for prob in weighted[card] if prob])
+    #       for idx, prob in enumerate(weighted[card]):
+    #           weighted[card][idx] = newWeight if prob else 0
+    # for (card, i) in knownset:
+    #   weighted[card][i] += 0.2 #prioritizing knownset over known works better i guess
+    # # print(weighted)
+    # # input()
+    # bestMoves = []
+    # bestChance = 0
+    # for card, weights in weighted.items():
+    #   # print(card, weights)
+    #   # print((not team) * h, (not team) * h + h)
+    #   notTeam = weights[(not team) * h:(not team) * h + h]
+    #   # print(notTeam)
+    #   currChance = max(notTeam)
+    #   if bestChance > 0 and bestChance == currChance:
+    #     bestMoves.append((self.playerNum, notTeam.index(currChance) + (not team) * h, card))
+    #   if bestChance < currChance:
+    #     bestChance = currChance
+    #     bestMoves = [(self.playerNum, notTeam.index(currChance) + (not team) * h, card)]
+  
+    # if bestMoves:
+    #   bestMove = random.choice(bestMoves)
+    #   moves.append(bestMove)
+    #   # printKnowledge(self)
+    #   print('Guess Ask')
+    #   print(bestMove, bestChance)
+    #   # input()
+    #   # print(bestMove, bestChance)
+    #   # input()
+    #   # print(bestMoves)
+    #   return moves
+
+    opponents = [i for i in range((not team) * h, (not team) * h + h) if self.knowledge[i]['numCards']]
+    if not opponents:
+      print("uh oh no ppl to ask :(")
+      weighted = {card:(1, self.playerNum) for card in self.hand}
+      setsToCall = set()
+      for card in self.search:
+        setsToCall.add(CTOSET[card])
+        for i, k in enumerate(self.knowledge):
+          if card in k['known']:
+            weighted[card] = (1, i)
+          elif (b := card in k['knownset']) or card in k['possible']:
+            if card in weighted:
+              prob = weighted[card][0]
+              askee = [weighted[card][1], i][b]
+              weighted[card] = (1 / (1/prob + 1), askee)
+            else:
+              weighted[card] = (1, i)
+      print(weighted)
+      bestChance = 0
+      bestSet = -1
+      for s in setsToCall:
+        chance = sum([weighted[card][0] for card in SETS[s]])
+        if chance > bestChance:
+          bestChance = chance
+          bestSet = s
+      
+      for card in SETS[bestSet]:
+        w = weighted[card]
+        moves.append((self.playerNum, w[1], card))
+      
+      print(moves)
+      print('Force Call')
+      return moves
+
+
+    #Random Move
+    askee = random.choice(opponents)
+    card = random.choice([*self.search])
+    # print(askee, NTOC[card])
+    moves = [(self.playerNum, askee, card)]
+    # print(weighted)
+    # printKnowledge(self)
+    # print('random')
+    # input()
+    return moves
+    #use knowledge to make move
+
 class goodPlayer(Player):
   def getMove(self):
     moves = []
@@ -294,7 +428,7 @@ class goodPlayer(Player):
           for idx, prob in enumerate(weighted[card]):
               weighted[card][idx] = newWeight if prob else 0
     for (card, i) in knownset:
-      weighted[card][i] += 0.2
+      weighted[card][i] += 1 #prioritizing knownset over known works better i guess
     # print(weighted)
     # input()
     bestMoves = []
@@ -322,100 +456,51 @@ class goodPlayer(Player):
       # input()
       # print(bestMoves)
       return moves
-
-    # weighted = {card:(1, self.playerNum) for card in self.hand}
-    #attempt at weighted gone wrong :O (move count went up)
-    # weighted = {}
-    # # setsToCall = set()
-    # for card in self.search:
-    #   # setsToCall.add(CTOSET[card])
-    #   for i, k in enumerate(self.knowledge):
-    #     if card in k['known']:
-    #       weighted[card] = (1, i)
-    #     elif (b := card in k['knownset']) or card in k['possible']:
-    #       if card in weighted:
-    #         prob, askee = weighted[card]
-    #         # print(askee, team)
-    #         # askee 
-    #         if (askee >= NUMPLAYERS//2) == team:
-    #         #team to team: swap
-    #         #team to opp: swap
-    #           askee = i
-    #         #opp to team: don't swap
-    #         elif (i >= NUMPLAYERS//2) != team:
-    #         #known opp to possible opp: dont swap
-    #           if b:
-    #         #possible opp to known opp: swap
-    #             askee = i
-    #             # prob += -300
-    #             # print('i love trains')
-    #             # input()
-    #         # print(askee)
-    #         # input()
-    #         weighted[card] = (1 / (1/prob + 1), askee)
-    #       else:
-    #         weighted[card] = (1, i)
     
-    # bestChance = 0
-    # bestCard = 0
-    # for card, weight in weighted.items():
-    #   # print(card, weight)
-    #   # input()
-    #   if (weight[1] >= NUMPLAYERS//2) != team:
-    #     if weight[0] > bestChance:
-    #       # print('Guess Ask')
-    #       # print(card, weight)
-    #       # input()
-    #       bestChance = weight[0]
-    #       bestCard = card
 
-    # if bestCard > 0:
-    #   moves.append((self.playerNum, weighted[bestCard][1], bestCard))
-    #   print('Guess Ask')
-    #   print(moves)
-    #   print(bestCard, bestChance)
-    #   printKnowledge(self)
-    #   print(len(weighted))
-    #   print(len(self.search))
-    #   # if bestChance > 0.5 and bestChance < 1:
-    #     # input()
-    #   # input()
-    #   return moves
-    # input()
-    
+    #TODO FIX FORCE CALLING TO ACCOUNT FOR NUMCARDS
     opponents = [i for i in range((not team) * h, (not team) * h + h) if self.knowledge[i]['numCards']]
     if not opponents:
       print("uh oh no ppl to ask :(")
-      weighted = {card:(1, self.playerNum) for card in self.hand}
-      setsToCall = set()
-      for card in self.search:
-        setsToCall.add(CTOSET[card])
-        for i, k in enumerate(self.knowledge):
-          if card in k['known']:
-            weighted[card] = (1, i)
-          elif (b := card in k['knownset']) or card in k['possible']:
-            if card in weighted:
-              prob = weighted[card][0]
-              askee = [weighted[card][1], i][b]
-              weighted[card] = (1 / (1/prob + 1), askee)
-            else:
-              weighted[card] = (1, i)
+      for card in self.knowledge[self.playerNum]['known']:
+        weights = [0]*6
+        weights[self.playerNum] = 1
+        weighted[card] = weights
       print(weighted)
-      bestChance = 0
-      bestSet = -1
-      for s in setsToCall:
-        chance = sum([weighted[card][0] for card in SETS[s]])
-        if chance > bestChance:
-          bestChance = chance
-          bestSet = s
+      printKnowledge(self)
+      input()
+      # weighted = {card:(1, self.playerNum) for card in self.hand}
+      # setsToCall = set()
+      # for card in self.search:
+      #   setsToCall.add(CTOSET[card])
+      #   for i, k in enumerate(self.knowledge):
+      #     if card in k['known']:
+      #       weighted[card] = (1, i)
+      #     elif (b := card in k['knownset']) or card in k['possible']:
+      #       if card in weighted:
+      #         prob = weighted[card][0]
+      #         askee = [weighted[card][1], i][b]
+      #         weighted[card] = (1 / (1/prob + 1), askee)
+      #       else:
+      #         weighted[card] = (1, i)
+      # print(weighted)
+      # bestChance = 0
+      # bestSet = -1
+      # for s in setsToCall:
+      #   chance = sum([weighted[card][0] for card in SETS[s]])
+      #   if chance > bestChance:
+      #     bestChance = chance
+      #     bestSet = s
       
-      for card in SETS[bestSet]:
-        w = weighted[card]
-        moves.append((self.playerNum, w[1], card))
+      # for card in SETS[bestSet]:
+      #   w = weighted[card]
+      #   moves.append((self.playerNum, w[1], card))
       
-      print(moves)
-      print('Force Call')
-      return moves
+      # print(self.knowledge)
+      # print(moves)
+      # print('Force Call')
+      # input()
+      # return moves
 
 
     #Random Move
@@ -425,7 +510,7 @@ class goodPlayer(Player):
     moves = [(self.playerNum, askee, card)]
     # print(weighted)
     # printKnowledge(self)
-    # print('random')
+    print('random')
     # input()
     return moves
     #use knowledge to make move
@@ -602,7 +687,8 @@ def playGame(state, NumPlayers=NUMPLAYERS):
       else:
         turn = moves[0][1]
     # printState(state)
-    # input()
+    # if calling:
+      # input()
 
   print(f'\nTotal number of moves: {countMoves}')
   print(f'Move Accuracy: {moveAccuracy}/{countMoves} or {100 * moveAccuracy/countMoves:.2f}%')

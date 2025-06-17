@@ -193,5 +193,10 @@ Guess for formula:
   4 Player: 0, 1/5, 5/19
   6 Player: 0, 1/9, 6/43
 
- 
- 
+Failed Knowledge Case: 
+  Player 0: 7H 2C 4C KH 10C 7D 2H 5H
+  Player 1: 3C JH QH JC 9S JS 5D KD
+  Player 2: 9H 5C 2S 3S 4S 4D 9D QD
+  Player 3: 7C 9C 6S 2D 3D QS KS 4H
+  Player 4: 6H 10H AH QC 6D AS AD 3H
+  Player 5: 6C 5S KC 7S AC 10S 10D JD
