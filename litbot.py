@@ -414,6 +414,7 @@ class goodPlayer(Player):
     #new attempt at weighted
     #weighted idea {card: [weight, weight, weight, ...]}
     #weighted idea {card: (bestOpponentWeight, opponent)}
+    ksBoost = 1
     weighted = {card:[0]*6 for card in self.search}
     knownset = set()
     for card in self.search:
@@ -428,7 +429,7 @@ class goodPlayer(Player):
           for idx, prob in enumerate(weighted[card]):
               weighted[card][idx] = newWeight if prob else 0
     for (card, i) in knownset:
-      weighted[card][i] += 1 #prioritizing knownset over known works better i guess
+      weighted[card][i] += ksBoost #prioritizing knownset over known works better i guess
     # print(weighted)
     # input()
     bestMoves = []
@@ -466,9 +467,43 @@ class goodPlayer(Player):
         weights = [0]*6
         weights[self.playerNum] = 1
         weighted[card] = weights
-      print(weighted)
-      printKnowledge(self)
-      input()
+
+      setsToCall = set()
+      for card in self.hand:
+        if CTOSET[card] not in setsToCall:
+          setsToCall.add(CTOSET[card])
+      
+      # numCards = [len(k['known'] & s for k in self.knowledge)]
+      # what do i want:
+      #   i want to get the weight of each set to see which one i should call
+      #     i need this to be accurate in the sense that a player can actually have card
+      #   then i want to pick the set to call and should already have the person to ask
+      setMoves = {}
+      bestWeight = 0
+      bestSet = set()
+      for s in setsToCall:
+        numCards = [k['numCards'] - len(k['known'] - SETS[s]) for k in self.knowledge]
+        currWeight = 0
+        for card in SETS[s]:
+          for i, player in enumerate(self.knowledge):
+            if card in player['known']:
+              numCards[i] -= 1
+              setMoves[card] = i
+              currWeight += 1 + ksBoost
+              break
+            if card in player['knownset'] or card in player['possible']:
+
+              if numCards[i]:
+                numCards[i] -= 1
+                setMoves[card] = i
+                currWeight += weighted[card][i]
+                break
+        if currWeight > bestWeight:
+          bestWeight = currWeight
+          bestSet = SETS[s]
+
+      moves = [(self.playerNum, setMoves[card], card) for card in bestSet]
+      return moves
       # weighted = {card:(1, self.playerNum) for card in self.hand}
       # setsToCall = set()
       # for card in self.search:
@@ -753,7 +788,7 @@ def main():
   moveCount = 0
   moveAccuracy = 0
   score = [0, 0]
-  players = ['P']*(NUMPLAYERS//2) + ['P']*(NUMPLAYERS//2)
+  players = ['P']*(NUMPLAYERS//2) + ['R']*(NUMPLAYERS//2)
   # state = makeGame(players)
   # stats = playGame(state)
   # calls = 0
