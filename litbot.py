@@ -2,7 +2,7 @@ import random
 from abc import ABC, abstractmethod
 import time
 
-NUMPLAYERS = 6
+NUMPLAYERS = 8
 
 DECK = [2, 3, 4, 5, 6, 7, 9, 10, 11, 12, 13, 14,
         15, 16, 17, 18, 19, 20, 22, 23, 24, 25, 26, 27,
@@ -131,7 +131,10 @@ class Player(ABC):
     normal = (asker < NUMPLAYERS//2) ^ (askee < NUMPLAYERS//2) #xor to find team asking not team
     self.asks.add(move)
     prev = self #for debugging
+
+    #don't know why I need the if normal but it was a hunch and it worked
     if normal:
+      #push cards from a set that was asked to knownset
       if not (SETS[CTOSET[card]] & self.knowledge[asker]['known']):
           #if the asker is known to have a card in that set then don't push cards to knownset
           for c in SETS[CTOSET[card]]: #add cards to knownset from possible
@@ -194,7 +197,7 @@ class Player(ABC):
       #       self.knowledge[i]['knownset'].remove(c)
       #       self.knowledge[i]['possible'].add(c)
 
-    #Only 1 card from set in knownset
+    #Only 1 card from set in knownset then push to known
     for i in range(NUMPLAYERS):
       for c in list(self.knowledge[i]['knownset']):
         if len(SETS[CTOSET[c]] & self.knowledge[i]['knownset']) == 1:
@@ -203,7 +206,7 @@ class Player(ABC):
             self.remover(c, idx, 'possible')
           self.knowledge[i]['known'].add(c)
 
-    #Number of cards in hand is equal to number of cards in knowledge
+    #Number of cards in hand is equal to number of cards in knowledge to all become known
     for k in self.knowledge:
       if k['numCards'] == len(k['known']) + len(k['knownset']) + len(k['possible']):
         for c in list(k['knownset'] | k['possible']):
@@ -215,7 +218,7 @@ class Player(ABC):
         k['knownset'].clear()
         k['possible'].clear()
 
-    #Finds unique cards among players
+    #Finds unique cards among players and pushes them to known
     allfound = set()
     possession = {}
     duplicate = set()
@@ -415,7 +418,7 @@ class goodPlayer(Player):
     #weighted idea {card: [weight, weight, weight, ...]}
     #weighted idea {card: (bestOpponentWeight, opponent)}
     ksBoost = 1
-    weighted = {card:[0]*6 for card in self.search}
+    weighted = {card:[0]*NUMPLAYERS for card in self.search}
     knownset = set()
     for card in self.search:
       for i, k in enumerate(self.knowledge):
