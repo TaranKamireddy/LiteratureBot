@@ -2,7 +2,7 @@ import random
 from abc import ABC, abstractmethod
 import time
 
-NUMPLAYERS = 8
+NUMPLAYERS = 6
 
 DECK = [2, 3, 4, 5, 6, 7, 9, 10, 11, 12, 13, 14,
         15, 16, 17, 18, 19, 20, 22, 23, 24, 25, 26, 27,
@@ -43,18 +43,27 @@ def shuffle(cards):
 
 def distribute(cards, players):
   state = []
-  # cards = [CTON[c] for c in ["7H", "2C","4C","KH","10C","7D","2H","5H","3C","JH","QH","JC","9S","JS","5D","KD","9H","5C","2S","3S","4S","4D","9D","QD","7C","9C","6S","2D","3D","QS","KS","4H","6H","10H","AH","QC","6D","AS","AD","3H","6C","5S","KC","7S","AC","10S","10D", "JD"]]
+  g = ["4S","5S","JS","KS","6C","9C","5D","KD",
+           "2S","3S","10S","QC","9D","AH","7H","KH",
+           "7C","7D","QD","2H","3H","5H","10H","JH",
+           "6S","2C","4C","5C","10C","AD","4D","6H",
+           "7S","9S","JC","3D","6D","4H","9H","QH",
+           "AS","QS","AC","3C","KC","2D","10D","JD"]
+  g = [CTON[c] for c in g]
+  print(cards)
 
   for i,v in enumerate(players):
     hand = set()
-    for j in range(b := len(cards)//NUMPLAYERS):
-      hand.add(cards[j + i*b])
+    for j in range(b := len(g)//NUMPLAYERS):
+      hand.add(g[j + i*b])
     if v == 'P':
       state.append(goodPlayer(i, hand))
     elif v == 'R':
       state.append(randPlayer(i, hand))
     elif v == 'W':
       state.append(weightPlayer(i, hand))
+    elif v == 'M':
+      state.append(manualPlayer(i, hand))
   return state
 
 def printCards(cards):
@@ -253,6 +262,18 @@ class Player(ABC):
   @abstractmethod
   def getMove(self):
     pass
+
+class manualPlayer(Player):
+  def getMove(self):
+    moves = []
+    manual = input(f"Player {self.playerNum}'s Move: ")
+    parsed = manual.upper().strip().split(", ")
+    for move in parsed:
+      move = move.split(" ")
+      print(move)
+      moves.append((int(move[0]), int(move[1]), CTON[move[2]]))
+    print(moves)
+    return moves
 
 class weightPlayer(Player):
   def getMove(self):
@@ -610,7 +631,7 @@ def makeGame(players=['P']*NUMPLAYERS):
 def playGame(state, NumPlayers=NUMPLAYERS):
   printState(state)
   gameOver = False
-  turn = random.randint(0, NumPlayers-1)
+  turn = 2#random.randint(0, NumPlayers-1)
   countMoves = 0
   countCalls = 0
   moveAccuracy = 0
@@ -791,12 +812,12 @@ def main():
   moveCount = 0
   moveAccuracy = 0
   score = [0, 0]
-  players = ['P']*(NUMPLAYERS//2) + ['R']*(NUMPLAYERS//2)
+  players = ['P']*(NUMPLAYERS//2) + ['M']*(NUMPLAYERS//2)
   # state = makeGame(players)
   # stats = playGame(state)
   # calls = 0
   start = time.time()
-  while count < 100:
+  while count < 1:
     count+=1
     state = makeGame(players)
     # try:
