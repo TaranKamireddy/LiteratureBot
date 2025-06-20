@@ -200,3 +200,22 @@ Failed Knowledge Case:
   Player 3: 7C 9C 6S 2D 3D QS KS 4H
   Player 4: 6H 10H AH QC 6D AS AD 3H
   Player 5: 6C 5S KC 7S AC 10S 10D JD
+
+lets goo we 8-0'ed omkar. 6/18/2025
+
+number of total possible states:
+8P = (48C6 * 42C6 * 36C6 * 30C6 * 24C6 * 18C6 * 12C6 * 1)/8! = 4.26313E33
+6P = (48C8 * 40C8 * 32C8 * 24C8 * 16C8 * 8C8 * 1)/6!         = 4.01285E30
+
+6C2 * 4C2 * 1
+6!
+(4!)2! = 15 * 6 * 1 = 90/3!
+
+12 34 56
+12 35 46
+12 36 45
+13 24 56
+13 25 46
+13 26 45
+...
+= 15

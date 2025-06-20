@@ -43,19 +43,19 @@ def shuffle(cards):
 
 def distribute(cards, players):
   state = []
-  g = ["4S","5S","JS","KS","6C","9C","5D","KD",
-           "2S","3S","10S","QC","9D","AH","7H","KH",
-           "7C","7D","QD","2H","3H","5H","10H","JH",
-           "6S","2C","4C","5C","10C","AD","4D","6H",
-           "7S","9S","JC","3D","6D","4H","9H","QH",
-           "AS","QS","AC","3C","KC","2D","10D","JD"]
-  g = [CTON[c] for c in g]
-  print(cards)
+  # g = ["4S","5S","JS","KS","6C","9C","5D","KD",
+  #          "2S","3S","10S","QC","9D","AH","7H","KH",
+  #          "7C","7D","QD","2H","3H","5H","10H","JH",
+  #          "6S","2C","4C","5C","10C","AD","4D","6H",
+  #          "7S","9S","JC","3D","6D","4H","9H","QH",
+  #          "AS","QS","AC","3C","KC","2D","10D","JD"]
+  # g = [CTON[c] for c in g]
+  # print(cards)
 
   for i,v in enumerate(players):
     hand = set()
-    for j in range(b := len(g)//NUMPLAYERS):
-      hand.add(g[j + i*b])
+    for j in range(b := len(cards)//NUMPLAYERS):
+      hand.add(cards[j + i*b])
     if v == 'P':
       state.append(goodPlayer(i, hand))
     elif v == 'R':
@@ -482,13 +482,11 @@ class goodPlayer(Player):
       # print(bestMoves)
       return moves
     
-
-    #TODO FIX FORCE CALLING TO ACCOUNT FOR NUMCARDS
     opponents = [i for i in range((not team) * h, (not team) * h + h) if self.knowledge[i]['numCards']]
     if not opponents:
       print("uh oh no ppl to ask :(")
       for card in self.knowledge[self.playerNum]['known']:
-        weights = [0]*6
+        weights = [0]*NUMPLAYERS
         weights[self.playerNum] = 1
         weighted[card] = weights
 
@@ -631,7 +629,7 @@ def makeGame(players=['P']*NUMPLAYERS):
 def playGame(state, NumPlayers=NUMPLAYERS):
   printState(state)
   gameOver = False
-  turn = 2#random.randint(0, NumPlayers-1)
+  turn = random.randint(0, NumPlayers-1)
   countMoves = 0
   countCalls = 0
   moveAccuracy = 0
@@ -812,12 +810,12 @@ def main():
   moveCount = 0
   moveAccuracy = 0
   score = [0, 0]
-  players = ['P']*(NUMPLAYERS//2) + ['M']*(NUMPLAYERS//2)
+  players = ['P']*(NUMPLAYERS//2) + ['R']*(NUMPLAYERS//2)
   # state = makeGame(players)
   # stats = playGame(state)
   # calls = 0
   start = time.time()
-  while count < 1:
+  while count < 100:
     count+=1
     state = makeGame(players)
     # try:
