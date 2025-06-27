@@ -27,7 +27,7 @@ You can find my design thoughts and strategy notes in the notes.txt file. It’s
 
 No setup needed just run the script in Python:
 ```
-python3 literature_bot.py
+python litbot.py
 ```
 
 It'll simulate a game between a logical bot and a random bot, and print out the results to the terminal.
